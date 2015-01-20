@@ -1,0 +1,1 @@
+MAVLINK_CONF = mavric
