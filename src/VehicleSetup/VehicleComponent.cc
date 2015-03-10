@@ -25,16 +25,38 @@
 ///     @author Don Gagne <don@thegagnes.com>
 
 #include "VehicleComponent.h"
+#include "AutoPilotPlugin.h"
 
-VehicleComponent::VehicleComponent(UASInterface* uas, QObject* parent) :
+VehicleComponent::VehicleComponent(UASInterface* uas, AutoPilotPlugin* autopilot, QObject* parent) :
     QObject(parent),
     _uas(uas),
-    _paramMgr(_uas->getParamManager())
+    _autopilot(autopilot)
 {
+    Q_ASSERT(uas);
+    Q_ASSERT(autopilot);
     
+    _paramMgr = _uas->getParamManager();
+    Q_ASSERT(_paramMgr);
 }
 
 VehicleComponent::~VehicleComponent()
 {
     
+}
+
+void VehicleComponent::addSummaryQmlComponent(QQmlContext* context, QQuickItem* parent)
+{
+    Q_ASSERT(context);
+    
+    // FIXME: We own this object now, need to delete somewhere
+    QQmlComponent component(context->engine(), QUrl::fromUserInput("qrc:/qml/VehicleComponentSummaryButton.qml"));
+    if (component.status() == QQmlComponent::Error) {
+        qDebug() << component.errors();
+        Q_ASSERT(false);
+    }
+    
+    QQuickItem* item = qobject_cast<QQuickItem*>(component.create(context));
+    Q_ASSERT(item);
+    item->setParentItem(parent);
+    item->setProperty("vehicleComponent", QVariant::fromValue(this));
 }

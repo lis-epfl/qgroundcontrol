@@ -30,12 +30,12 @@ GenericAutoPilotPlugin::GenericAutoPilotPlugin(UASInterface* uas, QObject* paren
     AutoPilotPlugin(parent)
 {
     Q_UNUSED(uas);
-}
+    
+    _parameterFacts = new GenericParameterFacts(uas, this);
+    Q_CHECK_PTR(_parameterFacts);
+    
+    connect(_parameterFacts, &GenericParameterFacts::factsReady, this, &GenericAutoPilotPlugin::pluginReady);
 
-QList<VehicleComponent*> GenericAutoPilotPlugin::getVehicleComponents(void) const
-{
-    // Generic autopilot has no configurable components
-    return QList<VehicleComponent*>();
 }
 
 QList<AutoPilotPluginManager::FullMode_t> GenericAutoPilotPlugin::getModes(void)
@@ -83,21 +83,24 @@ QString GenericAutoPilotPlugin::getShortModeText(uint8_t baseMode, uint32_t cust
     return mode;
 }
 
-void GenericAutoPilotPlugin::addFactsToQmlContext(QQmlContext* context) const
-{
-    Q_UNUSED(context);
-    Q_ASSERT_X(false, "Not yet implemented", "");
-}
-
-const QVariantMap& GenericAutoPilotPlugin::parameterFacts(void) const
-{
-    static QVariantMap staticMap;
-    
-    Q_ASSERT_X(false, "Not yet implemented", "");
-    return staticMap;
-}
-
 void GenericAutoPilotPlugin::clearStaticData(void)
 {
     // No Static data yet
+}
+
+const QVariantList& GenericAutoPilotPlugin::components(void)
+{
+    static QVariantList emptyList;
+    
+    return emptyList;
+}
+
+const QVariantMap& GenericAutoPilotPlugin::parameters(void)
+{
+    return _parameterFacts->factMap();
+}
+
+QUrl GenericAutoPilotPlugin::setupBackgroundImage(void)
+{
+    return QUrl::fromUserInput("qrc:/qml/px4fmu_2.x.png");
 }

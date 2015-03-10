@@ -70,24 +70,10 @@ _ui(new Ui::SettingsDialog)
     _ui->lowPowerCheckBox->setChecked(_mainWindow->lowPowerModeEnabled());
     connect(_ui->lowPowerCheckBox, SIGNAL(clicked(bool)), _mainWindow, SLOT(enableLowPowerMode(bool)));
     
-    // Dock widget title bars
-    _ui->titleBarCheckBox->setChecked(_mainWindow->dockWidgetTitleBarsEnabled());
-    connect(_ui->titleBarCheckBox,SIGNAL(clicked(bool)),_mainWindow,SLOT(enableDockWidgetTitleBars(bool)));
-    
     connect(_ui->deleteSettings, &QAbstractButton::toggled, this, &SettingsDialog::_deleteSettingsToggled);
     
-    // Custom mode
-    
-    _ui->customModeComboBox->addItem(tr("Default: Generic MAVLink and serial links"), MainWindow::CUSTOM_MODE_NONE);
-    _ui->customModeComboBox->addItem(tr("Wifi: Generic MAVLink, wifi or serial links"), MainWindow::CUSTOM_MODE_WIFI);
-    _ui->customModeComboBox->addItem(tr("PX4: Optimized for PX4 Autopilot Users"), MainWindow::CUSTOM_MODE_PX4);
-    
-    _ui->customModeComboBox->setCurrentIndex(_ui->customModeComboBox->findData(_mainWindow->getCustomMode()));
-    connect(_ui->customModeComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(selectCustomMode(int)));
-    
     // Application color style
-    MainWindow::QGC_MAINWINDOW_STYLE style = _mainWindow->getStyle();
-    _ui->styleChooser->setCurrentIndex(style);
+    _ui->styleChooser->setCurrentIndex(qgcApp()->styleIsDark() ? 0 : 1);
     
     _ui->savedFilesLocation->setText(qgcApp()->savedFilesLocation());
     _ui->promptFlightDataSave->setChecked(qgcApp()->promptFlightDataSave());
@@ -105,12 +91,7 @@ SettingsDialog::~SettingsDialog()
 
 void SettingsDialog::styleChanged(int index)
 {
-    _mainWindow->loadStyle((index == 1) ? MainWindow::QGC_MAINWINDOW_STYLE_LIGHT : MainWindow::QGC_MAINWINDOW_STYLE_DARK);
-}
-
-void SettingsDialog::selectCustomMode(int mode)
-{
-    _mainWindow->setCustomMode(static_cast<enum MainWindow::CUSTOM_MODE>(_ui->customModeComboBox->itemData(mode).toInt()));
+    qgcApp()->setStyle(index == 0);
 }
 
 void SettingsDialog::_deleteSettingsToggled(bool checked)

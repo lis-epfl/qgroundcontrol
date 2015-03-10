@@ -8,7 +8,6 @@
 #include <QRadioButton>
 #include <QString>
 #include <QListWidget>
-#include "UASView.h"
 #include "UASManager.h"
 
 const unsigned int QGCSwarmControl::updateInterval = 5000U;
@@ -38,14 +37,24 @@ QGCSwarmControl::QGCSwarmControl(QWidget *parent) :
 
 	connect(ui->setHomeButton,SIGNAL(clicked()),this,SLOT(sendNewHomePosition()));
 
-	// Get current MAV list => in parameterinterface.cc
-    //QList<UASInterface*> systems = UASManager::instance()->getUASList();
 	mavlink = MAVLinkProtocol::instance();
 
 	uas =  UASManager::instance()->getActiveUAS();
 	uas_previous = UASManager::instance()->getActiveUAS();
 
 	UASlist = UASManager::instance()->getUASList();
+
+    mode_init = false;
+
+	QListWidgetItem* item;
+	foreach(UASInterface* uasNew, UASlist)
+	{
+		item = uasToItemMapping[uasNew];
+		if (!item)
+		{
+			UASCreated(uasNew);
+		}
+	}
 
 	connect(UASManager::instance(),SIGNAL(UASCreated(UASInterface*)),this,SLOT(UASCreated(UASInterface*)));
 	connect(UASManager::instance(),SIGNAL(UASDeleted(UASInterface*)),this,SLOT(RemoveUAS(UASInterface*)));
@@ -54,11 +63,6 @@ QGCSwarmControl::QGCSwarmControl(QWidget *parent) :
 	connect(UASManager::instance(),SIGNAL(activeUASSet(UASInterface*)),this,SLOT(newActiveUAS(UASInterface*)));
 
 	connect(ui->remoteList,SIGNAL(itemClicked(QListWidgetItem*)),this,SLOT(remoteItem_clicked(QListWidgetItem*)));
-	
-	scenarioSelected = 	ui->scenarioList->item(0);
-	ui->scenarioList->setCurrentItem(scenarioSelected);
-
-	connect(ui->scenarioList,SIGNAL(itemClicked(QListWidgetItem*)),this,SLOT(scenarioListClicked(QListWidgetItem*)));
 
 	connect(this,SIGNAL(uasTextReceived(UASInterface*, QString)),this,SLOT(textMessageReceived(UASInterface*, QString)));
 
@@ -71,9 +75,14 @@ QGCSwarmControl::QGCSwarmControl(QWidget *parent) :
 
     connect(ui->modeComboBox, SIGNAL(activated(int)), this, SLOT(setMode(int)));
 
+    connect(ui->strategyLaunch, SIGNAL(clicked()),this,SLOT(strategyLaunchClicked()));
+
     all_selected = false;
 
-    mode_init = false;
+	ui->disarmButton->setAutoFillBackground(true);
+	ui->disarmButton->setStyleSheet("background-color: rgb(255, 0, 0); color: rgb(0, 0, 0)");
+
+	wptReachedCnt = 0;
 }
 
 QGCSwarmControl::~QGCSwarmControl()
@@ -85,6 +94,9 @@ void QGCSwarmControl::continueAllButton_clicked()
 {
 	qDebug() << "continueAllButton clicked";
 
+	wptReachedCnt = 0;
+	ui->wptReachedValue->setText(QString::number(wptReachedCnt));
+	
 	mavlink_message_t msg;
 	mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, MAV_COMP_ID_MISSIONPLANNER, MAV_CMD_MISSION_START, 1, 1, 1, 0, 0, 0, 0, 0);
 	mavlink->sendMessage(msg);
@@ -103,21 +115,11 @@ void QGCSwarmControl::launchScenario_clicked()
 {
 	qDebug() << "launchScenario clicked";
 
-	QListWidgetItem* currentItem = ui->scenarioList->currentItem();
-
 	int scenarioNum;
-	if(currentItem->text() == "Circle")
-	{
-		scenarioNum = 1;
-	}
-	else if (currentItem->text() == "Circle uniform")
-	{
-		scenarioNum = 2;
-	}
-	else
-	{
-		scenarioNum = 3;
-	}
+
+	scenarioNum = ui->comboBoxScenario->currentIndex() + 1;
+
+	qDebug() << "scenarioNum:" + QString::number(scenarioNum);
 
 	int autoContinue = 0;
 	if(ui->autoContinueCheckBox->checkState() == Qt::Checked)
@@ -168,6 +170,8 @@ void QGCSwarmControl::stopLogging_clicked()
 
 void QGCSwarmControl::UASCreated(UASInterface* uas)
 {
+	Q_ASSERT(uas);
+
 	if (uas)
 	{
 		QString idstring;
@@ -188,7 +192,10 @@ void QGCSwarmControl::UASCreated(UASInterface* uas)
 		item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
 		item->setCheckState(Qt::Unchecked);
 
+		item->setForeground(uas->getColor());
+
 		ui->listWidget->addItem(item);
+		ui->listWidget->sortItems();
 
 		uasToItemMapping[uas] = item;
 		itemToUasMapping[item] = uas;
@@ -199,10 +206,13 @@ void QGCSwarmControl::UASCreated(UASInterface* uas)
 		itemRemote->setFlags(itemRemote->flags() | Qt::ItemIsUserCheckable);
 		itemRemote->setCheckState(Qt::Checked);
 
+		itemRemote->setForeground(uas->getColor());
+
 		uasToItemRemote[uas] = itemRemote;
 		itemToUasRemote[itemRemote] = uas;
 
 		ui->remoteList->addItem(itemRemote);
+		ui->remoteList->sortItems();
 
 		UASlist = UASManager::instance()->getUASList();
 
@@ -217,7 +227,6 @@ void QGCSwarmControl::UASCreated(UASInterface* uas)
 
 void QGCSwarmControl::updateModesList(UASInterface* uas)
 {
-    
     if (!uas)
     {
     	return;
@@ -242,9 +251,9 @@ void QGCSwarmControl::RemoveUAS(UASInterface* uas)
 {
 	QListWidgetItem* item = uasToItemMapping[uas];
 	uasToItemMapping.remove(uas);
-	
+
 	itemToUasMapping.remove(item);
-	
+
 	//ui->listWidget->removeItemWidget(item);
 	ui->listWidget->takeItem(ui->listWidget->row(item));
 	delete item;
@@ -292,22 +301,6 @@ void QGCSwarmControl::newActiveUAS(UASInterface* uas)
 
 }
 
-void QGCSwarmControl::scenarioListClicked(QListWidgetItem* item)
-{
-	qDebug() << "scenario change";
-
-	for(int i=0; i<ui->scenarioList->count(); i++)
-	{
-		ui->scenarioList->item(i)->setCheckState(Qt::Unchecked);
-	}
-
-	ui->scenarioList->setCurrentItem(item);
-
-	qDebug() << "new current item: " << item->text();
-
-	item->setCheckState(Qt::Checked);
-}
-
 void QGCSwarmControl::textEmit(int uasid, int component, int severity, QString message)
 {
 	Q_UNUSED(uasid);
@@ -328,7 +321,14 @@ void QGCSwarmControl::textMessageReceived(UASInterface* uas, QString message)
     	qDebug() << "UAS id:" << QString::number(uas->getUASID());
     	item = uasToItemMapping[uas];
 
-    	if (message.contains("SUCCESS"))
+    	qDebug() << message;
+
+    	if (message.contains("reached waypoint"))
+    	{
+    		wptReachedCnt++;
+    		qDebug() << QString::number(wptReachedCnt);
+    		ui->wptReachedValue->setText(QString::number(wptReachedCnt));
+    	} else if (message.contains("SUCCESS"))
     	{
     		item->setBackground(Qt::green);
     	}
@@ -510,4 +510,14 @@ void QGCSwarmControl::sendNewHomePosition()
     mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_DO_SET_HOME, 1, 0, 0, 0, 0, lat, lon, alt);
     
     mavlink->sendMessage(msg);
+}
+
+void QGCSwarmControl::strategyLaunchClicked()
+{
+	int strategy = ui->comboBoxStrategy->currentIndex()+1;
+
+
+	mavlink_message_t msg;
+	mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_NAV_ROI, 1, strategy, 0, 0, 0, 0, 0, 0);
+	mavlink->sendMessage(msg);
 }

@@ -21,22 +21,27 @@
  
  ======================================================================*/
 
+/// @file
+///     @author Don Gagne <don@thegagnes.com>
+
 #ifndef VEHICLECOMPONENT_H
 #define VEHICLECOMPONENT_H
 
 #include <QObject>
+#include <QQmlContext>
+#include <QQuickItem>
 
 #include "UASInterface.h"
 
-/// @file
-///     @brief Vehicle Component class. A vehicle component is an object which
-///             abstracts the physical portion of a vehicle into a set of
-///             configurable values and user interface.
-///     @author Don Gagne <don@thegagnes.com>
+class AutoPilotPlugin;
+
+/// A vehicle component is an object which abstracts the physical portion of a vehicle into a set of
+/// configurable values and user interface.
 
 class VehicleComponent : public QObject
 {
     Q_OBJECT
+    
     Q_PROPERTY(QString name READ name CONSTANT)
     Q_PROPERTY(QString description READ description CONSTANT)
     Q_PROPERTY(bool requiresSetup READ requiresSetup CONSTANT)
@@ -44,9 +49,11 @@ class VehicleComponent : public QObject
     Q_PROPERTY(QString setupStateDescription READ setupStateDescription STORED false)
     Q_PROPERTY(QString icon READ icon CONSTANT)
     Q_PROPERTY(QWidget* setupWidget READ setupWidget STORED false)
+    Q_PROPERTY(QUrl summaryQmlSource READ summaryQmlSource CONSTANT);
+    Q_PROPERTY(QString prerequisiteSetup READ prerequisiteSetup)
     
 public:
-    VehicleComponent(UASInterface* uas, QObject* parent = NULL);
+    VehicleComponent(UASInterface* uas, AutoPilotPlugin* autopilot, QObject* parent = NULL);
     ~VehicleComponent();
     
     virtual QString name(void) const = 0;
@@ -57,13 +64,17 @@ public:
     virtual QString setupStateDescription(void) const = 0;
     virtual QWidget* setupWidget(void) const = 0;
     virtual QStringList paramFilterList(void) const = 0;
-    virtual QList<QStringList> summaryItems(void) const = 0;
+    virtual QUrl summaryQmlSource(void) const = 0;
+    virtual QString prerequisiteSetup(void) const = 0;
+    
+    virtual void addSummaryQmlComponent(QQmlContext* context, QQuickItem* parent);
     
 signals:
-    void setupCompleteChanged(void);
+    void setupCompleteChanged(bool setupComplete);
     
 protected:
     UASInterface*                   _uas;
+    AutoPilotPlugin*                _autopilot;
     QGCUASParamManagerInterface*    _paramMgr;
 };
 

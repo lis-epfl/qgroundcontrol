@@ -48,11 +48,11 @@ This file is part of the PIXHAWK project
 #include "LinechartWidget.h"
 #include "LinechartPlot.h"
 #include "LogCompressor.h"
-#include "MainWindow.h"
 #include "QGC.h"
 #include "MG.h"
 #include "QGCFileDialog.h"
 #include "QGCMessageBox.h"
+#include "QGCApplication.h"
 
 LinechartWidget::LinechartWidget(int systemid, QWidget *parent) : QWidget(parent),
     sysid(systemid),
@@ -141,7 +141,7 @@ LinechartWidget::LinechartWidget(int systemid, QWidget *parent) : QWidget(parent
     createLayout();
 
     // And make sure we're listening for future style changes
-    connect(MainWindow::instance(), SIGNAL(styleChanged(MainWindow::QGC_MAINWINDOW_STYLE)), this, SLOT(recolor()));
+    connect(qgcApp(), &QGCApplication::styleChanged, this, &LinechartWidget::recolor);
 
     updateTimer->setInterval(updateInterval);
     connect(updateTimer, SIGNAL(timeout()), this, SLOT(refresh()));
@@ -431,11 +431,19 @@ void LinechartWidget::refresh()
     setUpdatesEnabled(true);
 }
 
+QString LinechartWidget::getLogSaveFilename()
+{
+    QString fileName = QGCFileDialog::getSaveFileName(this,
+        tr("Save Log File"),
+        QStandardPaths::writableLocation(QStandardPaths::DesktopLocation),
+        tr("Log file (*.log)"),
+        "log");
+    return fileName;
+}
 
 void LinechartWidget::startLogging()
 {
     // Store reference to file
-    // Append correct file ending if needed
     bool abort = false;
 
     // Check if any curve is enabled
@@ -445,9 +453,9 @@ void LinechartWidget::startLogging()
     }
 
     // Let user select the log file name
-    //QDate date(QDate::currentDate());
+    // QDate date(QDate::currentDate());
     // QString("./pixhawk-log-" + date.toString("yyyy-MM-dd") + "-" + QString::number(logindex) + ".log")
-    QString fileName = QGCFileDialog::getSaveFileName(this, tr("Specify log file name"), QStandardPaths::writableLocation(QStandardPaths::DesktopLocation), tr("Logfile (*.log);;"));
+    QString fileName = getLogSaveFilename();
 
     while (!(fileName.endsWith(".log")) && !abort && fileName != "") {
         QMessageBox::StandardButton button = QGCMessageBox::critical(tr("Unsuitable file extension for logfile"),
@@ -458,10 +466,10 @@ void LinechartWidget::startLogging()
             abort = true;
             break;
         }
-        fileName = QGCFileDialog::getSaveFileName(this, tr("Specify log file name"), QStandardPaths::writableLocation(QStandardPaths::DesktopLocation), tr("Logfile (*.log);;"));
+        fileName = getLogSaveFilename();
     }
 
-    qDebug() << "SAVE FILE" << fileName;
+    qDebug() << "SAVE FILE " << fileName;
 
     // Check if the user did not abort the file save dialog
     if (!abort && fileName != "") {
@@ -488,7 +496,6 @@ void LinechartWidget::stopLogging()
         // Postprocess log file
         compressor = new LogCompressor(logFile->fileName(), logFile->fileName());
         connect(compressor, SIGNAL(finishedFile(QString)), this, SIGNAL(logfileWritten(QString)));
-        connect(compressor, SIGNAL(logProcessingStatusChanged(QString)), MainWindow::instance(), SLOT(showStatusMessage(QString)));
 
         QMessageBox::StandardButton button = QGCMessageBox::question(tr("Starting Log Compression"),
                                                                      tr("Should empty fields (e.g. due to packet drops) be filled with the previous value of the same variable (zero order hold)?"),
@@ -678,7 +685,7 @@ void LinechartWidget::removeCurve(QString curve)
 
 void LinechartWidget::recolor()
 {
-    activePlot->styleChanged(MainWindow::instance()->getStyle());
+    activePlot->styleChanged(qgcApp()->styleIsDark());
     foreach (QString key, colorIcons.keys())
     {
         QWidget* colorIcon = colorIcons.value(key, 0);

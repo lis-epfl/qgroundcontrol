@@ -30,11 +30,12 @@
 #include "UASManager.h"
 #include "AutoPilotPluginManager.h"
 #include "VehicleComponent.h"
-#include "VehicleComponentButton.h"
-#include "SummaryPage.h"
 #include "PX4FirmwareUpgrade.h"
+#include "ParameterEditor.h"
+#include "QGCQmlWidgetHolder.h"
+#include "MainWindow.h"
+#include "QGCMessageBox.h"
 
-#
 #include <QQmlError>
 #include <QQmlContext>
 #include <QDebug>
@@ -42,232 +43,143 @@
 SetupView::SetupView(QWidget* parent) :
     QWidget(parent),
     _uasCurrent(NULL),
-    _setupWidget(NULL),
-    _parameterWidget(NULL),
     _initComplete(false),
+    _autoPilotPlugin(NULL),
+    _currentSetupWidget(NULL),
     _ui(new Ui::SetupView)
 {
     _ui->setupUi(this);
-    
+
     bool fSucceeded = connect(UASManager::instance(), SIGNAL(activeUASSet(UASInterface*)), this, SLOT(_setActiveUAS(UASInterface*)));
     Q_UNUSED(fSucceeded);
     Q_ASSERT(fSucceeded);
     
-    connect(_ui->firmwareButton, &QPushButton::clicked, this, &SetupView::_firmwareButtonClicked);
-    connect(_ui->summaryButton, &QPushButton::clicked, this, &SetupView::_summaryButtonClicked);
+    //setResizeMode(SizeRootObjectToView);
     
-    // Summary button is not shown until we have parameters ready
-    _ui->summaryButton->setVisible(false);
+    _ui->buttonHolder->setAutoPilot(NULL);
+    _ui->buttonHolder->setSource(QUrl::fromUserInput("qrc:/qml/SetupViewButtons.qml"));
     
-    // We show firmware upgrade until we get parameters
-    _firmwareButtonClicked();
+    QObject* rootObject = (QObject*)_ui->buttonHolder->rootObject();
+    Q_ASSERT(rootObject);
+    
+    fSucceeded = connect(rootObject, SIGNAL(setupButtonClicked(QVariant)), this, SLOT(_setupButtonClicked(QVariant)));
+    Q_ASSERT(fSucceeded);
+    
+    fSucceeded = connect(rootObject, SIGNAL(firmwareButtonClicked()), this, SLOT(_firmwareButtonClicked()));
+    Q_ASSERT(fSucceeded);
+    
+    fSucceeded = connect(rootObject, SIGNAL(parametersButtonClicked()), this, SLOT(_parametersButtonClicked()));
+    Q_ASSERT(fSucceeded);
+    
+    fSucceeded = connect(rootObject, SIGNAL(summaryButtonClicked()), this, SLOT(_summaryButtonClicked()));
+    Q_ASSERT(fSucceeded);
+    
+    _setActiveUAS(UASManager::instance()->getActiveUAS());
 }
 
 SetupView::~SetupView()
 {
-    delete _ui;
+
 }
 
 void SetupView::_setActiveUAS(UASInterface* uas)
 {
     if (_uasCurrent) {
-        disconnect(_uasCurrent->getParamManager(), SIGNAL(parameterListUpToDate()), this, SLOT(_parametersReady()));
+        Q_ASSERT(_autoPilotPlugin);
+        disconnect(_autoPilotPlugin, &AutoPilotPlugin::pluginReady, this, &SetupView::_pluginReady);
     }
-    
-    // Clear all UI and fall back to Firmware ui since that is the only thing available when no UAS
-    _clearWidgets();
-    _clearComponentButtons();
-    _ui->summaryButton->setVisible(false);
-    _components.clear();
+
+    _autoPilotPlugin = NULL;
+    _ui->buttonHolder->setAutoPilot(NULL);
     _firmwareButtonClicked();
+    QObject* button = _ui->buttonHolder->rootObject()->findChild<QObject*>("firmwareButton");
+    Q_ASSERT(button);
+    button->setProperty("checked", true);
     
     _uasCurrent = uas;
     
     if (_uasCurrent) {
-        connect(_uasCurrent, &UASInterface::connected, this, &SetupView::_uasConnected);
-        connect(_uasCurrent, &UASInterface::disconnected, this, &SetupView::_uasDisconnected);
+        _autoPilotPlugin = AutoPilotPluginManager::instance()->getInstanceForAutoPilotPlugin(_uasCurrent);
         
-        bool fSucceeded = connect(_uasCurrent->getParamManager(), SIGNAL(parameterListUpToDate()), this, SLOT(_parametersReady()));
-        Q_ASSERT(fSucceeded);
-        Q_UNUSED(fSucceeded);
-        if (_uasCurrent->getParamManager()->parametersReady()) {
-            _parametersReady();
+        connect(_autoPilotPlugin, &AutoPilotPlugin::pluginReady, this, &SetupView::_pluginReady);
+        if (_autoPilotPlugin->pluginIsReady()) {
+            _pluginReady();
         }
     }
 }
 
-/// @brief Removes and deletes both the setup and parameter widgets from the tab view.
-void SetupView::_clearWidgets(void)
+void SetupView::_pluginReady(void)
 {
-    if (_setupWidget) {
-        _ui->setupLayout->removeWidget(_setupWidget);
-        delete _setupWidget;
-        _setupWidget = NULL;
-    }
-    
-    if (_parameterWidget) {
-        _ui->setupLayout->removeWidget(_parameterWidget);
-        delete _parameterWidget;
-        _parameterWidget = NULL;
-    }
+    _ui->buttonHolder->setAutoPilot(_autoPilotPlugin);
+    _summaryButtonClicked();
+    QObject* button = _ui->buttonHolder->rootObject()->findChild<QObject*>("summaryButton");
+    Q_ASSERT(button);
+    button->setProperty("checked", true);
 }
 
-/// @brief Removes and deletes all vehicle component setup buttons from the view.
-void SetupView::_clearComponentButtons(void)
+void SetupView::_changeSetupWidget(QWidget* newWidget)
 {
-    QLayoutItem* item;
-    while ((item = _ui->componentButtonLayout->itemAt(0))) {
-        VehicleComponentButton* componentButton = dynamic_cast<VehicleComponentButton*>(item->widget());
-        // Make sure this is really a VehicleComponentButton. If it isn't the UI has changed but the code hasn't.
-        Q_ASSERT(componentButton);
-        Q_UNUSED(componentButton);
-        _ui->componentButtonLayout->removeWidget(item->widget());
+    if (_currentSetupWidget) {
+        delete _currentSetupWidget;
     }
-}
-
-void SetupView::_summaryButtonClicked(void)
-{
-    // Clear previous tab widgets
-    _clearWidgets();
-    
-    // Create new tab widgets
-
-    _setupWidget = new SummaryPage(_components);
-    Q_CHECK_PTR(_setupWidget);
-    _ui->setupLayout->addWidget(_setupWidget);
-    
-    _parameterWidget = new ParameterEditor(_uasCurrent, QStringList(), this);
-    _ui->parameterLayout->addWidget(_parameterWidget);
-
-    _showBothTabs();
-    _ui->tabWidget->setTabText(0, tr("Vehicle Summary"));
-    _ui->tabWidget->setTabText(1, tr("All Parameters"));
-    
-    _uncheckAllButtons();
-    _ui->summaryButton->setChecked(true);
+    _currentSetupWidget = newWidget;
+    _ui->setupWidgetLayout->addWidget(newWidget);
 }
 
 void SetupView::_firmwareButtonClicked(void)
 {
-    // Clear previous tab widgets
-    _clearWidgets();
-    
-    // Create new tab widgets
-    
-    _setupWidget = new PX4FirmwareUpgrade(this);
-    Q_CHECK_PTR(_setupWidget);
-    _ui->setupLayout->addWidget(_setupWidget);
-    
-    _showOnlySetupTab();
-    _ui->tabWidget->setTabEnabled(1, false);
-    _ui->tabWidget->setTabText(0, tr("Firmware Upgrade"));
+    if (_uasCurrent && _uasCurrent->isArmed()) {
+        QGCMessageBox::warning("Setup", "Firmware Update cannot be performed while vehicle is armed.");
+        return;
+    }
 
-    _uncheckAllButtons();
-    _ui->firmwareButton->setChecked(true);
+#if 1
+    PX4FirmwareUpgrade* setup = new PX4FirmwareUpgrade(this);
+#else
+    // NYI
+    QGCQmlWidgetHolder* setup = new QGCQmlWidgetHolder;
+    Q_CHECK_PTR(setup);
+    
+    //setup->setAutoPilot(_autoPilotPlugin);
+    setup->setSource(QUrl::fromUserInput("qrc:/qml/FirmwareUpgrade.qml"));
+#endif
+    _changeSetupWidget(setup);
 }
 
-void SetupView::_componentButtonClicked(void)
+void SetupView::_parametersButtonClicked(void)
 {
-    // Clear previous tab widgets
-    _clearWidgets();
-    
-    // Create new tab widgets
-    
-    VehicleComponentButton* componentButton = dynamic_cast<VehicleComponentButton*>(sender());
-    Q_ASSERT(componentButton);
-    
-    VehicleComponent* component = componentButton->component();
-    Q_ASSERT(component);
-    
-    _setupWidget = component->setupWidget();
-    Q_ASSERT(_setupWidget);
-    _ui->setupLayout->addWidget(_setupWidget);
-    
-    _parameterWidget = new ParameterEditor(_uasCurrent, component->paramFilterList(), this);
-    _ui->parameterLayout->addWidget(_parameterWidget);
-    
-    _showBothTabs();
-    _ui->tabWidget->setTabText(0, tr("%1 Setup").arg(component->name()));
-    _ui->tabWidget->setTabText(1, tr("%1 Parameters").arg(component->name()));
-
-    _uncheckAllButtons();
-    componentButton->setChecked(true);
+    ParameterEditor* setup = new ParameterEditor(_uasCurrent, QStringList(), this);
+    _changeSetupWidget(setup);
 }
 
-void SetupView::_parametersReady(void)
+void SetupView::_summaryButtonClicked(void)
 {
-    // When parameters become ready for the first time, setup the rest of the ui.
+    Q_ASSERT(_autoPilotPlugin);
     
-    if (_initComplete) {
+    QGCQmlWidgetHolder* summary = new QGCQmlWidgetHolder;
+    Q_CHECK_PTR(summary);
+
+    summary->setAutoPilot(_autoPilotPlugin);
+    summary->setSource(QUrl::fromUserInput("qrc:/qml/VehicleSummary.qml"));
+
+    _changeSetupWidget(summary);
+}
+
+void SetupView::_setupButtonClicked(const QVariant& component)
+{
+    if (_uasCurrent->isArmed()) {
+        QGCMessageBox::warning("Setup", "Setup cannot be performed while vehicle is armed.");
+        return;
+    }
+
+    VehicleComponent* vehicle = qobject_cast<VehicleComponent*>(component.value<QObject*>());
+    Q_ASSERT(vehicle);
+    
+    QString setupPrereq = vehicle->prerequisiteSetup();
+    if (!setupPrereq.isEmpty()) {
+        QGCMessageBox::warning("Setup", QString("%1 setup must be completed prior to %2 setup.").arg(setupPrereq).arg(vehicle->name()));
         return;
     }
     
-    _initComplete = true;
-    
-    disconnect(_uasCurrent->getParamManager(), SIGNAL(parameterListUpToDate()), this, SLOT(_parametersReady()));
-    
-    _ui->summaryButton->setVisible(true);
-    
-    _components = AutoPilotPluginManager::instance()->getInstanceForAutoPilotPlugin(_uasCurrent)->getVehicleComponents();
-    
-    foreach(VehicleComponent* component, _components) {
-        VehicleComponentButton* button = new VehicleComponentButton(component, _ui->navBarWidget);
-        
-        button->setCheckable(true);
-        
-        button->setObjectName(component->name() + "Button");
-        button->setText(component->name());
-        
-        QIcon icon;
-        icon.addFile(component->icon());
-        button->setIcon(icon);
-        button->setIconSize(_ui->firmwareButton->iconSize());
-        
-        connect(button, &VehicleComponentButton::clicked, this, &SetupView::_componentButtonClicked);
-        
-        _ui->componentButtonLayout->addWidget(button);
-    }
-    
-    _summaryButtonClicked();
-}
-
-void SetupView::_showOnlySetupTab(void)
-{
-    _ui->tabWidget->setCurrentIndex(0);
-    _ui->tabWidget->removeTab(1);
-}
-
-void SetupView::_showBothTabs(void)
-{
-    _ui->tabWidget->setCurrentIndex(0);
-    if (_ui->tabWidget->count() == 1) {
-        _ui->tabWidget->insertTab(1, _ui->parameterTab, QString());
-    }
-}
-
-void SetupView::_uncheckAllButtons(void)
-{
-    _ui->firmwareButton->setChecked(false);
-    _ui->summaryButton->setChecked(false);
-    
-    int i = 0;
-    QLayoutItem* item;
-    while ((item = _ui->componentButtonLayout->itemAt(i++))) {
-        VehicleComponentButton* componentButton = dynamic_cast<VehicleComponentButton*>(item->widget());
-        if (componentButton != NULL) {
-            componentButton->setChecked(false);
-        }
-    }
-}
-
-void SetupView::_uasConnected(void)
-{
-    qDebug() << "UAS connected";
-    // FIXME: We should re-connect the UI
-}
-
-void SetupView::_uasDisconnected(void)
-{
-    qDebug() << "UAS disconnected";
-    // FIXME: We should disconnect the UI
+    _changeSetupWidget(vehicle->setupWidget());
 }

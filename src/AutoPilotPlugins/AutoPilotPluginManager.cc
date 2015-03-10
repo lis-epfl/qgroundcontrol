@@ -26,6 +26,7 @@
 
 #include "AutoPilotPluginManager.h"
 #include "PX4/PX4AutoPilotPlugin.h"
+#include "MAVRIC/MAVRICAutoPilotPlugin.h"
 #include "Generic/GenericAutoPilotPlugin.h"
 #include "QGCApplication.h"
 #include "UASManager.h"
@@ -76,6 +77,11 @@ void AutoPilotPluginManager::_uasCreated(UASInterface* uas)
             Q_CHECK_PTR(plugin);
             _pluginMap[MAV_AUTOPILOT_PX4][uasId] = plugin;
             break;
+        case MAV_AUTOPILOT_MAVRIC:
+            plugin = new MAVRICAutoPilotPlugin(uas,this);
+            Q_CHECK_PTR(plugin);
+            _pluginMap[MAV_AUTOPILOT_MAVRIC][uasId] = plugin;
+            break;
         case MAV_AUTOPILOT_GENERIC:
         default:
             plugin = new GenericAutoPilotPlugin(uas, this);
@@ -89,7 +95,7 @@ void AutoPilotPluginManager::_uasDeleted(UASInterface* uas)
 {
     Q_ASSERT(uas);
     
-    MAV_AUTOPILOT autopilotType = static_cast<MAV_AUTOPILOT>(uas->getAutopilotType());
+    MAV_AUTOPILOT autopilotType = _installedAutopilotType(static_cast<MAV_AUTOPILOT>(uas->getAutopilotType()));
     int uasId = uas->getUASID();
     Q_ASSERT(uasId != 0);
     
@@ -103,7 +109,7 @@ AutoPilotPlugin* AutoPilotPluginManager::getInstanceForAutoPilotPlugin(UASInterf
 {
     Q_ASSERT(uas);
     
-    MAV_AUTOPILOT autopilotType = static_cast<MAV_AUTOPILOT>(uas->getAutopilotType());
+    MAV_AUTOPILOT autopilotType = _installedAutopilotType(static_cast<MAV_AUTOPILOT>(uas->getAutopilotType()));
     int uasId = uas->getUASID();
     Q_ASSERT(uasId != 0);
     
@@ -118,6 +124,8 @@ QList<AutoPilotPluginManager::FullMode_t> AutoPilotPluginManager::getModes(int a
     switch (autopilotType) {
         case MAV_AUTOPILOT_PX4:
             return PX4AutoPilotPlugin::getModes();
+        case MAV_AUTOPILOT_MAVRIC:
+            return MAVRICAutoPilotPlugin::getModes();
         case MAV_AUTOPILOT_GENERIC:
         default:
             return GenericAutoPilotPlugin::getModes();
@@ -129,8 +137,16 @@ QString AutoPilotPluginManager::getShortModeText(uint8_t baseMode, uint32_t cust
     switch (autopilotType) {
         case MAV_AUTOPILOT_PX4:
             return PX4AutoPilotPlugin::getShortModeText(baseMode, customMode);
+        case MAV_AUTOPILOT_MAVRIC:
+            return MAVRICAutoPilotPlugin::getShortModeText(baseMode, customMode);
         case MAV_AUTOPILOT_GENERIC:
         default:
             return GenericAutoPilotPlugin::getShortModeText(baseMode, customMode);
     }
+}
+
+/// If autopilot is not an installed plugin, returns MAV_AUTOPILOT_GENERIC
+MAV_AUTOPILOT AutoPilotPluginManager::_installedAutopilotType(MAV_AUTOPILOT autopilot)
+{
+    return _pluginMap.contains(autopilot) ? autopilot : MAV_AUTOPILOT_GENERIC;
 }

@@ -42,7 +42,6 @@ private slots:
 	void ListWidgetClicked(QListWidgetItem* item);
 
 	void newActiveUAS(UASInterface* uas);
-	void scenarioListClicked(QListWidgetItem* item);
 
 	void refreshView();
 
@@ -64,10 +63,14 @@ private slots:
 
 	void sendNewHomePosition();
 
+	void strategyLaunchClicked();
+
 private:
     Ui::QGCSwarmControl *ui;
 
     void updateModesList(UASInterface* uas);
+
+    int wptReachedCnt;
 
 protected:
 	MAVLinkProtocol* mavlink;     ///< Reference to the MAVLink instance
@@ -81,8 +84,6 @@ protected:
 	QMap<QListWidgetItem*,UASInterface*> itemToUasRemote;	
 
 	UASInterface *uas_previous;
-
-	QListWidgetItem* scenarioSelected;
 
 	QTimer updateTimer; ///< Only update at 1 Hz to not overload the GUI
 	static const unsigned int updateInterval; ///< The update interval of the refresh function

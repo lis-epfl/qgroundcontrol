@@ -56,6 +56,8 @@
 #include "UASManager.h"
 #include "AutoPilotPluginManager.h"
 #include "QGCTemporaryFile.h"
+#include "QGCFileDialog.h"
+#include "QGCPalette.h"
 
 #ifdef QGC_RTLAB_ENABLED
 #include "OpalLink.h"
@@ -68,10 +70,14 @@ const char* QGCApplication::_deleteAllSettingsKey = "DeleteAllSettingsNextBoot";
 const char* QGCApplication::_settingsVersionKey = "SettingsVersion";
 const char* QGCApplication::_savedFilesLocationKey = "SavedFilesLocation";
 const char* QGCApplication::_promptFlightDataSave = "PromptFLightDataSave";
+const char* QGCApplication::_styleKey = "StyleIsDark";
 
 const char* QGCApplication::_defaultSavedFileDirectoryName = "QGroundControl";
 const char* QGCApplication::_savedFileMavlinkLogDirectoryName = "FlightData";
 const char* QGCApplication::_savedFileParameterDirectoryName = "SavedParameters";
+
+const char* QGCApplication::_darkStyleFile = ":files/styles/style-dark.css";
+const char* QGCApplication::_lightStyleFile = ":files/styles/style-light.css";
 
 /**
  * @brief Constructor for the main application.
@@ -86,11 +92,14 @@ const char* QGCApplication::_savedFileParameterDirectoryName = "SavedParameters"
 
 QGCApplication::QGCApplication(int &argc, char* argv[], bool unitTesting) :
     QApplication(argc, argv),
-    _runningUnitTests(unitTesting)
+    _runningUnitTests(unitTesting),
+    _styleIsDark(true)
 {
     Q_ASSERT(_app == NULL);
     _app = this;
     
+    // This prevents usage of QQuickWidget to fail since it doesn't support native widget siblings
+    setAttribute(Qt::AA_DontCreateNativeWidgetSiblings);
     
 #ifdef QT_DEBUG
     // First thing we want to do is set up the qtlogging.ini file. If it doesn't already exist we copy
@@ -200,6 +209,9 @@ void QGCApplication::_initCommon(void)
                                       "Your saved settings have been reset to defaults."));
     }
     
+    _styleIsDark = settings.value(_styleKey, _styleIsDark).toBool();
+    _loadCurrentStyle();
+    
     // Load saved files location and validate
     
     QString savedFilesLocation;
@@ -235,6 +247,9 @@ void QGCApplication::_initCommon(void)
     // Avoid Using setFont(). In the Qt docu you can read the following:
     //     "Warning: Do not use this function in conjunction with Qt Style Sheets."
     // setFont(fontDatabase.font(fontFamilyName, "Roman", 12));
+    
+    // Register our Qml palette before anyone tries to use it
+    qmlRegisterType<QGCPalette>("QGroundControl.Palette", 1, 0, "QGCPalette");
 }
 
 bool QGCApplication::_initForNormalAppBoot(void)
@@ -242,8 +257,6 @@ bool QGCApplication::_initForNormalAppBoot(void)
     QSettings settings;
     
     _createSingletons();
-    
-    enum MainWindow::CUSTOM_MODE mode = (enum MainWindow::CUSTOM_MODE) settings.value("QGC_CUSTOM_MODE", (int)MainWindow::CUSTOM_MODE_PX4).toInt();
     
     // Show splash screen
     QPixmap splashImage(":/files/images/splash.png");
@@ -259,7 +272,7 @@ bool QGCApplication::_initForNormalAppBoot(void)
 
     // Start the user interface
     splashScreen->showMessage(tr("Starting user interface"), Qt::AlignLeft | Qt::AlignBottom, QColor(62, 93, 141));
-    MainWindow* mainWindow = MainWindow::_create(splashScreen, mode);
+    MainWindow* mainWindow = MainWindow::_create(splashScreen);
     Q_CHECK_PTR(mainWindow);
     
     // If we made it this far and we still don't have a location. Either the specfied location was invalid
@@ -272,46 +285,13 @@ bool QGCApplication::_initForNormalAppBoot(void)
         mainWindow->showSettings();
     }
     
-    UDPLink* udpLink = NULL;
-    
-    if (mainWindow->getCustomMode() == MainWindow::CUSTOM_MODE_WIFI)
-    {
-        // Connect links
-        // to make sure that all components are initialized when the
-        // first messages arrive
-        udpLink = new UDPLink(QHostAddress::Any, 14550);
-        LinkManager::instance()->addLink(udpLink);
-    } else {
-        // We want to have a default serial link available for "quick" connecting.
-        SerialLink *slink = new SerialLink();
-        LinkManager::instance()->addLink(slink);
-    }
-    
-#ifdef QGC_RTLAB_ENABLED
-    // Add OpalRT Link, but do not connect
-    OpalLink* opalLink = new OpalLink();
-    _mainWindow->addLink(opalLink);
-#endif
-    
     // Remove splash screen
     splashScreen->finish(mainWindow);
     mainWindow->splashScreenFinished();
-    
-    
-    // Check if link could be connected
-    if (udpLink && LinkManager::instance()->connectLink(udpLink))
-    {
-        QMessageBox::StandardButton button = QGCMessageBox::critical(tr("Could not connect UDP port. Is an instance of %1 already running?").arg(qAppName()),
-                                                                     tr("It is recommended to close the application and stop all instances. Click Yes to close."),
-                                                                     QMessageBox::Yes | QMessageBox::No,
-                                                                     QMessageBox::No);
-        // Exit application
-        if (button == QMessageBox::Yes)
-        {
-            //mainWindow->close();
-            QTimer::singleShot(200, mainWindow, SLOT(close()));
-        }
-    }
+
+    // Now that main window is upcheck for lost log files
+    connect(this, &QGCApplication::checkForLostLogFiles, MAVLinkProtocol::instance(), &MAVLinkProtocol::checkForLostLogFiles);
+    emit checkForLostLogFiles();
     
     return true;
 }
@@ -456,6 +436,10 @@ void QGCApplication::_createSingletons(void)
 
 void QGCApplication::_destroySingletons(void)
 {
+    if (MainWindow::instance()) {
+        delete MainWindow::instance();
+    }
+    
     if (LinkManager::instance(true /* nullOk */)) {
         // This will close/delete all connections
         LinkManager::instance()->_shutdown();
@@ -477,4 +461,88 @@ void QGCApplication::_destroySingletons(void)
     UASManager::_deleteSingleton();
     LinkManager::_deleteSingleton();
     GAudioOutput::_deleteSingleton();
+}
+
+void QGCApplication::informationMessageBoxOnMainThread(const QString& title, const QString& msg)
+{
+    QGCMessageBox::information(title, msg);
+}
+
+void QGCApplication::warningMessageBoxOnMainThread(const QString& title, const QString& msg)
+{
+    QGCMessageBox::warning(title, msg);
+}
+
+void QGCApplication::criticalMessageBoxOnMainThread(const QString& title, const QString& msg)
+{
+    QGCMessageBox::critical(title, msg);
+}
+
+void QGCApplication::saveTempFlightDataLogOnMainThread(QString tempLogfile)
+{
+    QString saveFilename = QGCFileDialog::getSaveFileName(
+        MainWindow::instance(),
+        tr("Save Flight Data Log"),
+        qgcApp()->mavlinkLogFilesLocation(),
+        tr("Flight Data Log (*.mavlink)"),
+        "mavlink");
+    if (!saveFilename.isEmpty()) {
+        QFile::copy(tempLogfile, saveFilename);
+    }
+    QFile::remove(tempLogfile);
+}
+
+void QGCApplication::setStyle(bool styleIsDark)
+{
+    QSettings settings;
+    
+    settings.setValue(_styleKey, styleIsDark);
+    _styleIsDark = styleIsDark;
+    _loadCurrentStyle();
+    emit styleChanged(_styleIsDark);
+}
+
+void QGCApplication::_loadCurrentStyle(void)
+{
+    bool success = true;
+    QString styles;
+    
+    // Signal to the user that the app will pause to apply a new stylesheet
+    setOverrideCursor(Qt::WaitCursor);
+    
+    // The dark style sheet is the master. Any other selected style sheet just overrides
+    // the colors of the master sheet.
+    QFile masterStyleSheet(_darkStyleFile);
+    if (masterStyleSheet.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        styles = masterStyleSheet.readAll();
+    } else {
+        qDebug() << "Unable to load master dark style sheet";
+        success = false;
+    }
+    
+    if (success && !_styleIsDark) {
+        qDebug() << "LOADING LIGHT";
+        // Load the slave light stylesheet.
+        QFile styleSheet(_lightStyleFile);
+        if (styleSheet.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            styles += styleSheet.readAll();
+        } else {
+            qDebug() << "Unable to load slave light sheet:";
+            success = false;
+        }
+    }
+    
+    if (!styles.isEmpty()) {
+        setStyleSheet(styles);
+    }
+    
+    if (!success) {
+        // Fall back to plastique if we can't load our own
+        setStyle("plastique");
+    }
+    
+    QGCPalette::setGlobalTheme(_styleIsDark ? QGCPalette::Dark : QGCPalette::Light);
+    
+    // Finally restore the cursor before returning.
+    restoreOverrideCursor();
 }

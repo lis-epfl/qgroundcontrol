@@ -74,6 +74,7 @@ public slots:
     void newHome_clicked();
     void start_clicked();
     void stop_clicked();
+    void isArrived_clicked();
 
 signals:
     void changedMode(int);

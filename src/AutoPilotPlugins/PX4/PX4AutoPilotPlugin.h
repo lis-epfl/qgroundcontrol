@@ -28,6 +28,13 @@
 #include "AutoPilotPluginManager.h"
 #include "UASInterface.h"
 #include "PX4ParameterFacts.h"
+#include "AirframeComponent.h"
+#include "RadioComponent.h"
+#include "FlightModesComponent.h"
+#include "SensorsComponent.h"
+#include "SafetyComponent.h"
+
+#include <QImage>
 
 /// @file
 ///     @brief This is the PX4 specific implementation of the AutoPilot class.
@@ -42,19 +49,31 @@ public:
     ~PX4AutoPilotPlugin();
 
     // Overrides from AutoPilotPlugin
-    virtual QList<VehicleComponent*> getVehicleComponents(void) const ;
-    virtual void addFactsToQmlContext(QQmlContext* context) const;
-    virtual const QVariantMap& parameterFacts(void) const { return _parameterFacts->factMap(); }
     virtual bool pluginIsReady(void) const;
+    virtual const QVariantList& components(void);
+    virtual const QVariantMap& parameters(void);
+    virtual QUrl setupBackgroundImage(void);
 
     static QList<AutoPilotPluginManager::FullMode_t> getModes(void);
     static QString getShortModeText(uint8_t baseMode, uint32_t customMode);
     static void clearStaticData(void);
     
+    // These methods should only be used by objects within the plugin
+    AirframeComponent* airframeComponent(void) { return _airframeComponent; }
+    RadioComponent* radioComponent(void) { return _radioComponent; }
+    FlightModesComponent* flightModesComponent(void) { return _flightModesComponent; }
+    SensorsComponent* sensorsComponent(void) { return _sensorsComponent; }
+    SafetyComponent* safetyComponent(void) { return _safetyComponent; }
+    
 private:
-    UASInterface*       _uas;
-    PX4ParameterFacts*  _parameterFacts;
-    bool                _pluginReady;
+    UASInterface*           _uas;
+    PX4ParameterFacts*      _parameterFacts;
+    QVariantList            _components;
+    AirframeComponent*      _airframeComponent;
+    RadioComponent*         _radioComponent;
+    FlightModesComponent*   _flightModesComponent;
+    SensorsComponent*       _sensorsComponent;
+    SafetyComponent*        _safetyComponent;
 };
 
 #endif

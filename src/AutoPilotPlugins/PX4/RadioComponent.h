@@ -36,7 +36,7 @@ class RadioComponent : public PX4Component
     Q_OBJECT
     
 public:
-    RadioComponent(UASInterface* uas, QObject* parent = NULL);
+    RadioComponent(UASInterface* uas, AutoPilotPlugin* autopilot, QObject* parent = NULL);
     
     // Virtuals from PX4Component
     virtual const char** setupCompleteChangedTriggerList(void) const;
@@ -50,10 +50,12 @@ public:
     virtual QString setupStateDescription(void) const;
     virtual QWidget* setupWidget(void) const;
     virtual QStringList paramFilterList(void) const;
-    virtual QList<QStringList> summaryItems(void) const;
+    virtual QUrl summaryQmlSource(void) const;
+    virtual QString prerequisiteSetup(void) const;
     
 private:
-    const QString       _name;
+    const QString   _name;
+    QVariantList    _summaryItems;
 };
 
 #endif

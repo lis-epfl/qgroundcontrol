@@ -95,6 +95,12 @@ void UASControlWidget::setUAS(UASInterface* uas)
             //connect(ui.setHomeButton, SIGNAL(clicked()), uas, SLOT(setLocalOriginAtCurrentGPSPosition()));
             disconnect(oldUAS, SIGNAL(modeChanged(int,QString,QString)), this, SLOT(updateMode(int, QString, QString)));
             disconnect(oldUAS, SIGNAL(statusChanged(int)), this, SLOT(updateState(int)));
+            
+            disconnect(ui.nextButton,SIGNAL(clicked()),this,SLOT(next_clicked()));
+            disconnect(ui.setNewHomeButton,SIGNAL(clicked()),this,SLOT(newHome_clicked()));
+            disconnect(ui.startButton,SIGNAL(clicked()),this,SLOT(start_clicked()));
+            disconnect(ui.stopButton,SIGNAL(clicked()),this,SLOT(stop_clicked()));
+            disconnect(ui.isArrivedButton,SIGNAL(clicked()),this,SLOT(isArrived_clicked()));
         }
     }
 
@@ -113,6 +119,7 @@ void UASControlWidget::setUAS(UASInterface* uas)
         connect(ui.setNewHomeButton,SIGNAL(clicked()),this,SLOT(newHome_clicked()));
         connect(ui.startButton,SIGNAL(clicked()),this,SLOT(start_clicked()));
         connect(ui.stopButton,SIGNAL(clicked()),this,SLOT(stop_clicked()));
+        connect(ui.isArrivedButton,SIGNAL(clicked()),this,SLOT(isArrived_clicked()));
 
         ui.controlStatusLabel->setText(tr("Connected to ") + uas->getUASName());
 
@@ -242,12 +249,12 @@ void UASControlWidget::cycleContextButton()
 
 void UASControlWidget::next_clicked()
 {
-    if(uasActive)
+    if(mavlink)
     {
         mavlink_message_t msg;
 
-        mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, uasID, MAV_COMP_ID_MISSIONPLANNER, MAV_CMD_MISSION_START, 1, 1, 1, 0, 0, 0, 0, 0);
-        uasActive->sendMessage(msg);
+        mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, uasID, MAV_COMP_ID_MISSIONPLANNER, MAV_CMD_MISSION_START, 1, 1, 1, 1, 0, 0, 0, 0);
+        mavlink->sendMessage(msg);
 
     }
 }
@@ -285,6 +292,16 @@ void UASControlWidget::stop_clicked()
     {
         mavlink_message_t msg;
         mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, uasID, 0, MAV_CMD_OVERRIDE_GOTO, 1, MAV_GOTO_DO_HOLD, MAV_GOTO_HOLD_AT_CURRENT_POSITION, 0, 0, 0, 0, 0);
+        uasActive->sendMessage(msg);
+    }
+}
+
+void UASControlWidget::isArrived_clicked()
+{
+    if(uasActive)
+    {
+        mavlink_message_t msg;
+        mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, uasID, MAV_COMP_ID_MISSIONPLANNER, MAV_CMD_CONDITION_DISTANCE, 1, 0, 32, 0, 0, 0, 0, 0);
         uasActive->sendMessage(msg);
     }
 }

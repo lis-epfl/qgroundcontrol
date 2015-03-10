@@ -166,10 +166,10 @@ WindowsBuild {
 }
 
 #
-# By default warnings as errors are turned off. Even so, in order for a pull request 
-# to be accepted you must compile cleanly with warnings as errors turned on the default 
-# set of OS builds. See http://www.qgroundcontrol.org/dev/contribute for more details. 
-# You can use the WarningsAsErrorsOn CONFIG switch to turn warnings as errors on for your 
+# By default warnings as errors are turned off. Even so, in order for a pull request
+# to be accepted you must compile cleanly with warnings as errors turned on the default
+# set of OS builds. See http://www.qgroundcontrol.org/dev/contribute for more details.
+# You can use the WarningsAsErrorsOn CONFIG switch to turn warnings as errors on for your
 # own builds.
 #
 
@@ -239,7 +239,7 @@ RESOURCES += qgroundcontrol.qrc
 TRANSLATIONS += \
     es-MX.ts \
     en-US.ts
-    
+
 DEPENDPATH += \
     . \
     plugins
@@ -343,7 +343,9 @@ FORMS += \
     src/ui/px4_configuration/QGCPX4SensorCalibration.ui \
     src/ui/px4_configuration/PX4RCCalibration.ui \
     src/ui/px4_configuration/PX4FirmwareUpgrade.ui \
-    src/ui/QGCUASFileView.ui
+    src/ui/QGCUASFileView.ui \
+    src/QGCQmlWidgetHolder.ui \
+    src/ui/QGCMapRCToParamDialog.ui \
 
 HEADERS += \
     src/MG.h \
@@ -454,7 +456,6 @@ HEADERS += \
     src/ui/QGCHilFlightGearConfiguration.h \
     src/ui/QGCHilJSBSimConfiguration.h \
     src/ui/QGCHilXPlaneConfiguration.h \
-    src/ui/submainwindow.h \
     src/ui/uas/UASQuickView.h \
     src/ui/uas/UASQuickViewItem.h \
     src/ui/linechart/ChartPlot.h \
@@ -483,7 +484,6 @@ HEADERS += \
     src/ui/px4_configuration/PX4Bootloader.h \
     src/ui/px4_configuration/PX4FirmwareUpgradeThread.h \
     src/ui/px4_configuration/PX4FirmwareUpgrade.h \
-    src/ui/menuactionhelper.h \
     src/uas/UASManagerInterface.h \
     src/uas/QGCUASParamManagerInterface.h \
     src/uas/QGCUASFileManager.h \
@@ -495,7 +495,12 @@ HEADERS += \
     src/QGCComboBox.h \
     src/QGCTemporaryFile.h \
     src/audio/QGCAudioWorker.h \
-    src/QGCQuickWidget.h
+    src/QGCQuickWidget.h \
+    src/QGCPalette.h \
+    src/QGCQmlWidgetHolder.h \
+    src/ui/QGCParamTreeWidget.h \
+    src/ui/QGCMapRCToParamDialog.h \
+    src/QGCDockWidget.h \
 
 SOURCES += \
     src/main.cc \
@@ -598,7 +603,6 @@ SOURCES += \
     src/ui/QGCHilFlightGearConfiguration.cc \
     src/ui/QGCHilJSBSimConfiguration.cc \
     src/ui/QGCHilXPlaneConfiguration.cc \
-    src/ui/submainwindow.cpp \
     src/ui/uas/UASQuickViewItem.cc \
     src/ui/uas/UASQuickView.cc \
     src/ui/linechart/ChartPlot.cc \
@@ -627,7 +631,6 @@ SOURCES += \
     src/ui/px4_configuration/PX4Bootloader.cc \
     src/ui/px4_configuration/PX4FirmwareUpgradeThread.cc \
     src/ui/px4_configuration/PX4FirmwareUpgrade.cc \
-    src/ui/menuactionhelper.cpp \
     src/uas/QGCUASFileManager.cc \
     src/ui/QGCUASFileView.cc \
     src/CmdLineOptParser.cc \
@@ -636,14 +639,19 @@ SOURCES += \
     src/QGCComboBox.cc \
     src/QGCTemporaryFile.cc \
     src/audio/QGCAudioWorker.cpp \
-    src/QGCQuickWidget.cc
+    src/QGCQuickWidget.cc \
+    src/QGCPalette.cc \
+    src/QGCQmlWidgetHolder.cpp \
+    src/ui/QGCParamTreeWidget.cpp \
+    src/ui/QGCMapRCToParamDialog.cpp \
+    src/QGCDockWidget.cc \
 
 #
 # Unit Test specific configuration goes here
 #
 # We have to special case Windows debug_and_release builds because you can't have files
-# which are only in the debug variant [QTBUG-40351]. So in this case we include unit tests 
-# even in the release variant. If you want a Windows release build with no unit tests run 
+# which are only in the debug variant [QTBUG-40351]. So in this case we include unit tests
+# even in the release variant. If you want a Windows release build with no unit tests run
 # qmake with CONFIG-=debug_and_release CONFIG+=release.
 #
 
@@ -675,7 +683,10 @@ HEADERS += \
     src/qgcunittest/MainWindowTest.h \
     src/AutoPilotPlugins/PX4/Tests/FlightModeConfigTest.h \
     src/qgcunittest/MavlinkLogTest.h \
-    src/FactSystem/FactSystemTest.h
+    src/FactSystem/FactSystemTestBase.h \
+    src/FactSystem/FactSystemTestPX4.h \
+    src/FactSystem/FactSystemTestGeneric.h \
+    src/QmlControls/QmlTestWidget.h \
 
 SOURCES += \
     src/qgcunittest/UnitTest.cc \
@@ -697,29 +708,30 @@ SOURCES += \
     src/qgcunittest/MainWindowTest.cc \
     src/AutoPilotPlugins/PX4/Tests/FlightModeConfigTest.cc \
     src/qgcunittest/MavlinkLogTest.cc \
-    src/FactSystem/FactSystemTest.cc
+    src/FactSystem/FactSystemTestBase.cc \
+    src/FactSystem/FactSystemTestPX4.cc \
+    src/FactSystem/FactSystemTestGeneric.cc \
+    src/QmlControls/QmlTestWidget.cc \
+
 }
 
 #
 # AutoPilot Plugin Support
 #
 FORMS += \
-    src/VehicleSetup/SetupView.ui \
-    src/VehicleSetup/SummaryPage.ui \
     src/VehicleSetup/ParameterEditor.ui \
     src/ui/QGCPX4VehicleConfig.ui \
-    src/AutoPilotPlugins/PX4/FlightModeConfig.ui
+    src/AutoPilotPlugins/PX4/FlightModeConfig.ui \
+    src/VehicleSetup/SetupView.ui \
 
 HEADERS+= \
     src/VehicleSetup/SetupView.h \
-    src/VehicleSetup/SummaryPage.h \
     src/VehicleSetup/ParameterEditor.h \
-    src/VehicleSetup/VehicleSetupButton.h \
-    src/VehicleSetup/VehicleComponentButton.h \
     src/VehicleSetup/VehicleComponent.h \
     src/AutoPilotPlugins/AutoPilotPluginManager.h \
     src/AutoPilotPlugins/AutoPilotPlugin.h \
     src/AutoPilotPlugins/Generic/GenericAutoPilotPlugin.h \
+    src/AutoPilotPlugins/Generic/GenericParameterFacts.h \
     src/AutoPilotPlugins/PX4/PX4AutoPilotPlugin.h \
     src/AutoPilotPlugins/PX4/PX4Component.h \
     src/AutoPilotPlugins/PX4/RadioComponent.h \
@@ -727,15 +739,17 @@ HEADERS+= \
     src/AutoPilotPlugins/PX4/FlightModeConfig.h \
     src/AutoPilotPlugins/PX4/AirframeComponent.h \
     src/AutoPilotPlugins/PX4/SensorsComponent.h \
+    src/AutoPilotPlugins/PX4/SafetyComponent.h \
     src/AutoPilotPlugins/PX4/PX4ParameterFacts.h \
+    src/AutoPilotPlugins/MAVRIC/MAVRICAutoPilotPlugin.h \
 
 SOURCES += \
     src/VehicleSetup/SetupView.cc \
-    src/VehicleSetup/SummaryPage.cc \
     src/VehicleSetup/ParameterEditor.cc \
     src/VehicleSetup/VehicleComponent.cc \
     src/AutoPilotPlugins/AutoPilotPluginManager.cc \
     src/AutoPilotPlugins/Generic/GenericAutoPilotPlugin.cc \
+    src/AutoPilotPlugins/Generic/GenericParameterFacts.cc \
     src/AutoPilotPlugins/PX4/PX4AutoPilotPlugin.cc \
     src/AutoPilotPlugins/PX4/PX4Component.cc \
     src/AutoPilotPlugins/PX4/RadioComponent.cc \
@@ -743,7 +757,9 @@ SOURCES += \
     src/AutoPilotPlugins/PX4/FlightModeConfig.cc \
     src/AutoPilotPlugins/PX4/AirframeComponent.cc \
     src/AutoPilotPlugins/PX4/SensorsComponent.cc \
+    src/AutoPilotPlugins/PX4/SafetyComponent.cc \
     src/AutoPilotPlugins/PX4/PX4ParameterFacts.cc \
+    src/AutoPilotPlugins/MAVRIC/MAVRICAutoPilotPlugin.cc \
 
 # Fact System code
 
@@ -755,9 +771,11 @@ HEADERS += \
     src/FactSystem/Fact.h \
     src/FactSystem/FactMetaData.h \
     src/FactSystem/FactValidator.h \
+    src/FactSystem/FactLoader.h \
 
 SOURCES += \
     src/FactSystem/FactSystem.cc \
     src/FactSystem/Fact.cc \
     src/FactSystem/FactMetaData.cc \
     src/FactSystem/FactValidator.cc \
+    src/FactSystem/FactLoader.cc \

@@ -11,7 +11,7 @@
 QGCMapWidget::QGCMapWidget(QWidget *parent) :
     mapcontrol::OPMapWidget(parent),
     firingWaypointChange(NULL),
-    maxUpdateInterval(2.1f), // 2 seconds
+    maxUpdateInterval(0.1f), // 2 seconds
     followUAVEnabled(false),
     trailType(mapcontrol::UAVTrailType::ByTimeElapsed),
     trailInterval(2.0f),

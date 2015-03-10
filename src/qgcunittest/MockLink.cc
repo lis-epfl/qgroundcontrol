@@ -74,7 +74,8 @@ MockLink::MockLink(void) :
     _inNSH(false),
     _mavlinkStarted(false),
     _mavBaseMode(MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_CUSTOM_MODE_ENABLED),
-    _mavState(MAV_STATE_STANDBY)
+    _mavState(MAV_STATE_STANDBY),
+    _autopilotType(MAV_AUTOPILOT_PX4)
 {
     union px4_custom_mode   px4_cm;
 
@@ -137,24 +138,28 @@ void MockLink::run(void)
     _timer50HzTasks.start(20);
     
     exec();
+    
+    QObject::disconnect(&_timer1HzTasks, &QTimer::timeout, this, &MockLink::_run1HzTasks);
+    QObject::disconnect(&_timer10HzTasks, &QTimer::timeout, this, &MockLink::_run10HzTasks);
+    QObject::disconnect(&_timer50HzTasks, &QTimer::timeout, this, &MockLink::_run50HzTasks);
 }
 
 void MockLink::_run1HzTasks(void)
 {
-    if (_mavlinkStarted) {
+    if (_mavlinkStarted && _connected) {
         _sendHeartBeat();
     }
 }
 
 void MockLink::_run10HzTasks(void)
 {
-    if (_mavlinkStarted) {
+    if (_mavlinkStarted && _connected) {
     }
 }
 
 void MockLink::_run50HzTasks(void)
 {
-    if (_mavlinkStarted) {
+    if (_mavlinkStarted && _connected) {
     }
 }
 
@@ -201,6 +206,8 @@ void MockLink::_loadParams(void)
                 break;
         }
         
+        qCDebug(MockLinkLog) << "Loading param" << paramName << paramValue;
+        
         _mapParamName2Value[paramName] = paramValue;
         _mapParamName2MavParamType[paramName] = static_cast<MAV_PARAM_TYPE>(paramType);
     }
@@ -215,7 +222,7 @@ void MockLink::_sendHeartBeat(void)
                                _vehicleComponentId,
                                &msg,
                                MAV_TYPE_QUADROTOR,  // MAV_TYPE
-                               MAV_AUTOPILOT_PX4,   // MAV_AUTOPILOT
+                               _autopilotType,      // MAV_AUTOPILOT
                                _mavBaseMode,        // MAV_MODE
                                _mavCustomMode,      // custom mode
                                _mavState);          // MAV_STATE
@@ -455,6 +462,8 @@ void MockLink::_handleParamRequestList(const mavlink_message_t& msg)
         
         Q_ASSERT(paramName.length() <= MAVLINK_MSG_ID_PARAM_VALUE_LEN);
         strncpy(paramId, paramName.toLocal8Bit().constData(), MAVLINK_MSG_ID_PARAM_VALUE_LEN);
+        
+        qCDebug(MockLinkLog) << "Sending msg_param_value" << paramId << paramType;
         
         mavlink_msg_param_value_pack(_vehicleSystemId,
                                      _vehicleComponentId,

@@ -61,10 +61,12 @@ static const struct mavType mavTypeInfo[] = {
 };
 static size_t cMavTypes = sizeof(mavTypeInfo) / sizeof(mavTypeInfo[0]);
 
-AirframeComponent::AirframeComponent(UASInterface* uas, QObject* parent) :
-    PX4Component(uas, parent),
+AirframeComponent::AirframeComponent(UASInterface* uas, AutoPilotPlugin* autopilot, QObject* parent) :
+    PX4Component(uas, autopilot, parent),
     _name(tr("Airframe"))
 {
+    Q_UNUSED(mavTypeInfo);  // Keeping this around for later use
+    
     // Validate that our mavTypeInfo array hasn't gotten out of sync
     
     Q_ASSERT(cMavTypes == MAV_TYPE_ENUM_END);
@@ -92,8 +94,9 @@ AirframeComponent::AirframeComponent(UASInterface* uas, QObject* parent) :
         MAV_TYPE_VTOL_DUOROTOR,
         MAV_TYPE_VTOL_QUADROTOR
     };
+    Q_UNUSED(mavTypes); // Keeping this around for later use
     
-    for (size_t i=0; i<sizeof(mavTypes)/sizeof(mavTypes[0]); i++) {
+    for (size_t i=0; i<cMavTypes; i++) {
         Q_ASSERT(mavTypeInfo[i].type == mavTypes[i]);
     }
 }
@@ -161,56 +164,12 @@ QWidget* AirframeComponent::setupWidget(void) const
     return new QGCPX4AirframeConfig;
 }
 
-QList<QStringList> AirframeComponent::summaryItems(void) const
+QUrl AirframeComponent::summaryQmlSource(void) const
 {
-    QVariant value;
-    QStringList row;
-    QList<QStringList> items;
-    
-    row << "System ID:";
-    if (_paramMgr->getParameterValue(_paramMgr->getDefaultComponentId(), "MAV_SYS_ID", value)) {
-        if (value.toInt() == 0) {
-            row << "Setup required";
-        } else {
-            row << value.toString();
-        }
-    } else {
-        // Why is the parameter missing?
-        Q_ASSERT(false);
-    }
-    items << row;
-    
-    row.clear();
-    row << "Airframe:";
-    if (_paramMgr->getParameterValue(_paramMgr->getDefaultComponentId(), "SYS_AUTOSTART", value)) {
-        if (value.toInt() == 0) {
-            row << "Setup required";
-        } else {
-            row << value.toString();
-        }
-    } else {
-        // Why is the parameter missing?
-        Q_ASSERT(false);
-    }
-    items << row;
-    
-    row.clear();
-    row << "Type:";
-    if (_paramMgr->getParameterValue(_paramMgr->getDefaultComponentId(), "MAV_TYPE", value)) {
-        int index = value.toInt();
-        
-        if (index < 0 || index >= (int)cMavTypes) {
-            row << "Unknown";
-        } else {
-            row << mavTypeInfo[index].description;
-        }
-    } else {
-        // Why is the parameter missing?
-        Q_ASSERT(false);
-        row << "Unknown";
-    }
-    items << row;
-    
-    return items;
+    return QUrl::fromUserInput("qrc:/qml/AirframeComponentSummary.qml");
 }
 
+QString AirframeComponent::prerequisiteSetup(void) const
+{
+    return QString();
+}

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>270</width>
-    <height>575</height>
+    <height>682</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -51,7 +51,7 @@
      <x>90</x>
      <y>390</y>
      <width>81</width>
-     <height>171</height>
+     <height>201</height>
     </rect>
    </property>
   </widget>
@@ -59,7 +59,7 @@
    <property name="geometry">
     <rect>
      <x>140</x>
-     <y>260</y>
+     <y>240</y>
      <width>101</width>
      <height>23</height>
     </rect>
@@ -84,13 +84,13 @@
     <bool>false</bool>
    </property>
    <property name="value">
-    <number>25</number>
+    <number>30</number>
    </property>
   </widget>
   <widget class="QSpinBox" name="numVhcSpinBox">
    <property name="geometry">
     <rect>
-     <x>100</x>
+     <x>70</x>
      <y>210</y>
      <width>42</width>
      <height>22</height>
@@ -105,12 +105,12 @@
     <rect>
      <x>80</x>
      <y>190</y>
-     <width>91</width>
+     <width>51</width>
      <height>20</height>
     </rect>
    </property>
    <property name="text">
-    <string>Num. of vehicles</string>
+    <string># Vhc</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_2">
@@ -139,48 +139,6 @@
     <string>Auto landing</string>
    </property>
   </widget>
-  <widget class="QListWidget" name="scenarioList">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>240</y>
-     <width>111</width>
-     <height>91</height>
-    </rect>
-   </property>
-   <item>
-    <property name="text">
-     <string>Circle</string>
-    </property>
-    <property name="checkState">
-     <enum>Checked</enum>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>Circle uniform</string>
-    </property>
-    <property name="checkState">
-     <enum>Unchecked</enum>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>Stream</string>
-    </property>
-    <property name="checkState">
-     <enum>Unchecked</enum>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>Swarm</string>
-    </property>
-    <property name="checkState">
-     <enum>Unchecked</enum>
-    </property>
-   </item>
-  </widget>
   <widget class="QPushButton" name="autoTakeoff">
    <property name="geometry">
     <rect>
@@ -197,20 +155,20 @@
   <widget class="QSpinBox" name="altitudeSpinBox">
    <property name="geometry">
     <rect>
-     <x>190</x>
+     <x>120</x>
      <y>210</y>
      <width>42</width>
      <height>22</height>
     </rect>
    </property>
    <property name="value">
-    <number>20</number>
+    <number>25</number>
    </property>
   </widget>
   <widget class="QLabel" name="label_3">
    <property name="geometry">
     <rect>
-     <x>190</x>
+     <x>130</x>
      <y>190</y>
      <width>41</width>
      <height>20</height>
@@ -223,8 +181,8 @@
   <widget class="QCheckBox" name="autoContinueCheckBox">
    <property name="geometry">
     <rect>
-     <x>140</x>
-     <y>240</y>
+     <x>170</x>
+     <y>210</y>
      <width>111</width>
      <height>20</height>
     </rect>
@@ -269,10 +227,10 @@
     </rect>
    </property>
    <property name="minimum">
-    <double>-99.000000000000000</double>
+    <double>-1000.000000000000000</double>
    </property>
    <property name="maximum">
-    <double>99.000000000000000</double>
+    <double>1000.000000000000000</double>
    </property>
    <property name="singleStep">
     <double>0.050000000000000</double>
@@ -281,7 +239,7 @@
   <widget class="QPushButton" name="setParameters">
    <property name="geometry">
     <rect>
-     <x>110</x>
+     <x>100</x>
      <y>340</y>
      <width>41</width>
      <height>27</height>
@@ -333,9 +291,9 @@
   <widget class="QPushButton" name="disarmButton">
    <property name="geometry">
     <rect>
-     <x>160</x>
-     <y>70</y>
-     <width>99</width>
+     <x>10</x>
+     <y>560</y>
+     <width>71</width>
      <height>27</height>
     </rect>
    </property>
@@ -349,7 +307,7 @@
      <x>180</x>
      <y>390</y>
      <width>81</width>
-     <height>171</height>
+     <height>201</height>
     </rect>
    </property>
   </widget>
@@ -417,8 +375,8 @@
   <widget class="QPushButton" name="setHomeButton">
    <property name="geometry">
     <rect>
-     <x>140</x>
-     <y>290</y>
+     <x>20</x>
+     <y>300</y>
      <width>99</width>
      <height>27</height>
     </rect>
@@ -437,10 +395,10 @@
     </rect>
    </property>
    <property name="minimum">
-    <double>-99.000000000000000</double>
+    <double>-1000.000000000000000</double>
    </property>
    <property name="maximum">
-    <double>99.000000000000000</double>
+    <double>1000.000000000000000</double>
    </property>
    <property name="singleStep">
     <double>0.050000000000000</double>
@@ -456,10 +414,10 @@
     </rect>
    </property>
    <property name="minimum">
-    <double>-99.000000000000000</double>
+    <double>-1000.000000000000000</double>
    </property>
    <property name="maximum">
-    <double>99.000000000000000</double>
+    <double>1000.000000000000000</double>
    </property>
    <property name="singleStep">
     <double>0.050000000000000</double>
@@ -475,10 +433,10 @@
     </rect>
    </property>
    <property name="minimum">
-    <double>-99.000000000000000</double>
+    <double>-1000.000000000000000</double>
    </property>
    <property name="maximum">
-    <double>99.000000000000000</double>
+    <double>1000.000000000000000</double>
    </property>
    <property name="singleStep">
     <double>0.050000000000000</double>
@@ -494,10 +452,10 @@
     </rect>
    </property>
    <property name="minimum">
-    <double>-99.000000000000000</double>
+    <double>-1000.000000000000000</double>
    </property>
    <property name="maximum">
-    <double>99.000000000000000</double>
+    <double>1000.000000000000000</double>
    </property>
    <property name="singleStep">
     <double>0.050000000000000</double>
@@ -513,10 +471,10 @@
     </rect>
    </property>
    <property name="minimum">
-    <double>-99.000000000000000</double>
+    <double>-1000.000000000000000</double>
    </property>
    <property name="maximum">
-    <double>99.000000000000000</double>
+    <double>1000.000000000000000</double>
    </property>
    <property name="singleStep">
     <double>0.050000000000000</double>
@@ -532,13 +490,118 @@
     </rect>
    </property>
    <property name="minimum">
-    <double>-99.000000000000000</double>
+    <double>-1000.000000000000000</double>
    </property>
    <property name="maximum">
-    <double>99.000000000000000</double>
+    <double>1000.000000000000000</double>
    </property>
    <property name="singleStep">
     <double>0.050000000000000</double>
+   </property>
+  </widget>
+  <widget class="QLabel" name="wptReachedLabel">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>600</y>
+     <width>121</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string># of MAV arrived:</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="wptReachedValue">
+   <property name="geometry">
+    <rect>
+     <x>140</x>
+     <y>600</y>
+     <width>21</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <property name="layoutDirection">
+    <enum>Qt::LeftToRight</enum>
+   </property>
+   <property name="text">
+    <string>0</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="comboBoxScenario">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>240</y>
+     <width>85</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <item>
+    <property name="text">
+     <string>Circle</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Circle uniform</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Stream</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Swarm</string>
+    </property>
+   </item>
+  </widget>
+  <widget class="QComboBox" name="comboBoxStrategy">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>270</y>
+     <width>85</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <item>
+    <property name="text">
+     <string>ORCA</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Human</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>PFM</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Flocking</string>
+    </property>
+   </item>
+  </widget>
+  <widget class="QPushButton" name="strategyLaunch">
+   <property name="geometry">
+    <rect>
+     <x>140</x>
+     <y>270</y>
+     <width>101</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Set strategy</string>
    </property>
   </widget>
  </widget>
