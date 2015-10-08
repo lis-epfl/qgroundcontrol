@@ -30,9 +30,9 @@ UASManager::UASManager(QObject* parent) :
     UASManagerInterface(parent),
     activeUAS(NULL),
     offlineUASWaypointManager(NULL),
-    homeLat(47.3769),
-    homeLon(8.549444),
-    homeAlt(470.0),
+    homeLat(46.51852236174565),
+    homeLon(6.566044801857777f),
+    homeAlt(400.0),
     homeFrame(MAV_FRAME_GLOBAL)
 {
     loadSettings();
