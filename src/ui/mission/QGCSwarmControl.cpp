@@ -1,3 +1,34 @@
+/*=====================================================================
+ 
+ QGroundControl Open Source Ground Control Station
+ 
+ (c) 2009 - 2015 QGROUNDCONTROL PROJECT <http://www.qgroundcontrol.org>
+ 
+ This file is part of the QGROUNDCONTROL project
+ 
+ QGROUNDCONTROL is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ 
+ QGROUNDCONTROL is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with QGROUNDCONTROL. If not, see <http://www.gnu.org/licenses/>.
+ 
+ ======================================================================*/
+
+// The above copyright block should be at the top of every file.
+
+/// @file
+///     @brief This file is used to control a group of muliple robot 
+///             having in mind the MAV'RIC framework. 
+///
+///     @author Nicolas Dousse <nic.dousse@gmail.com>
+
 #include "QGCSwarmControl.h"
 #include "ui_QGCSwarmControl.h"
 
@@ -19,54 +50,54 @@ QGCSwarmControl::QGCSwarmControl(QWidget *parent) :
     ui->setupUi(this);
 
     connect(ui->continueAllButton,SIGNAL(clicked()),this,SLOT(continueAllButton_clicked()));
-	connect(ui->Return2Start,SIGNAL(clicked()),this,SLOT(Return2startButton_clicked()));
-	connect(ui->scenarioLaunch,SIGNAL(clicked()),this,SLOT(launchScenario_clicked()));
-	connect(ui->autoLanding,SIGNAL(clicked()),this,SLOT(autoLanding_clicked()));
-	connect(ui->autoTakeoff,SIGNAL(clicked()),this,SLOT(autoTakeoff_clicked()));
+    connect(ui->Return2Start,SIGNAL(clicked()),this,SLOT(Return2startButton_clicked()));
+    connect(ui->scenarioLaunch,SIGNAL(clicked()),this,SLOT(launchScenario_clicked()));
+    connect(ui->autoLanding,SIGNAL(clicked()),this,SLOT(autoLanding_clicked()));
+    connect(ui->autoTakeoff,SIGNAL(clicked()),this,SLOT(autoTakeoff_clicked()));
 
-	connect(ui->startLogging,SIGNAL(clicked()),this,SLOT(startLogging_clicked()));
-	connect(ui->stopLogging,SIGNAL(clicked()),this,SLOT(stopLogging_clicked()));
+    connect(ui->startLogging,SIGNAL(clicked()),this,SLOT(startLogging_clicked()));
+    connect(ui->stopLogging,SIGNAL(clicked()),this,SLOT(stopLogging_clicked()));
 
-	connect(ui->startButton,SIGNAL(clicked()),this,SLOT(startButton_clicked()));
-	connect(ui->stopButton,SIGNAL(clicked()),this,SLOT(stopButton_clicked()));
+    connect(ui->startButton,SIGNAL(clicked()),this,SLOT(startButton_clicked()));
+    connect(ui->stopButton,SIGNAL(clicked()),this,SLOT(stopButton_clicked()));
 
-	connect(ui->armButton,SIGNAL(clicked()),this,SLOT(armButton_clicked()));
-	connect(ui->disarmButton,SIGNAL(clicked()),this,SLOT(disarmButton_clicked()));
+    connect(ui->armButton,SIGNAL(clicked()),this,SLOT(armButton_clicked()));
+    connect(ui->disarmButton,SIGNAL(clicked()),this,SLOT(disarmButton_clicked()));
 
-	connect(ui->selectButton,SIGNAL(clicked()),this,SLOT(selectButton_clicked()));
+    connect(ui->selectButton,SIGNAL(clicked()),this,SLOT(selectButton_clicked()));
 
-	connect(ui->setHomeButton,SIGNAL(clicked()),this,SLOT(sendNewHomePosition()));
+    connect(ui->setHomeButton,SIGNAL(clicked()),this,SLOT(sendNewHomePosition()));
 
-	mavlink = MAVLinkProtocol::instance();
+    mavlink = MAVLinkProtocol::instance();
 
-	uas =  UASManager::instance()->getActiveUAS();
-	uas_previous = UASManager::instance()->getActiveUAS();
+    uas =  UASManager::instance()->getActiveUAS();
+    uas_previous = UASManager::instance()->getActiveUAS();
 
-	UASlist = UASManager::instance()->getUASList();
+    UASlist = UASManager::instance()->getUASList();
 
     mode_init = false;
 
-	QListWidgetItem* item;
-	foreach(UASInterface* uasNew, UASlist)
-	{
-		item = uasToItemMapping[uasNew];
-		if (!item)
-		{
-			UASCreated(uasNew);
-		}
-	}
+    QListWidgetItem* item;
+    foreach(UASInterface* uasNew, UASlist)
+    {
+        item = uasToItemMapping[uasNew];
+        if (!item)
+        {
+            UASCreated(uasNew);
+        }
+    }
 
-	connect(UASManager::instance(),SIGNAL(UASCreated(UASInterface*)),this,SLOT(UASCreated(UASInterface*)));
-	connect(UASManager::instance(),SIGNAL(UASDeleted(UASInterface*)),this,SLOT(RemoveUAS(UASInterface*)));
+    connect(UASManager::instance(),SIGNAL(UASCreated(UASInterface*)),this,SLOT(UASCreated(UASInterface*)));
+    connect(UASManager::instance(),SIGNAL(UASDeleted(UASInterface*)),this,SLOT(RemoveUAS(UASInterface*)));
 
-	connect(ui->listWidget,SIGNAL(itemClicked(QListWidgetItem*)),this,SLOT(ListWidgetClicked(QListWidgetItem*)));
-	connect(UASManager::instance(),SIGNAL(activeUASSet(UASInterface*)),this,SLOT(newActiveUAS(UASInterface*)));
+    connect(ui->listWidget,SIGNAL(itemClicked(QListWidgetItem*)),this,SLOT(ListWidgetClicked(QListWidgetItem*)));
+    connect(UASManager::instance(),SIGNAL(activeUASSet(UASInterface*)),this,SLOT(newActiveUAS(UASInterface*)));
 
-	connect(ui->remoteList,SIGNAL(itemClicked(QListWidgetItem*)),this,SLOT(remoteItem_clicked(QListWidgetItem*)));
+    connect(ui->remoteList,SIGNAL(itemClicked(QListWidgetItem*)),this,SLOT(remoteItem_clicked(QListWidgetItem*)));
 
-	connect(this,SIGNAL(uasTextReceived(UASInterface*, QString)),this,SLOT(textMessageReceived(UASInterface*, QString)));
+    connect(this,SIGNAL(uasTextReceived(UASInterface*, QString)),this,SLOT(textMessageReceived(UASInterface*, QString)));
 
-	connect(&updateTimer, SIGNAL(timeout()), this, SLOT(refreshView()));
+    connect(&updateTimer, SIGNAL(timeout()), this, SLOT(refreshView()));
     updateTimer.start(updateInterval);
 
     connect(ui->setParameters,SIGNAL(clicked()),this,SLOT(setParameters_clicked()));
@@ -79,10 +110,10 @@ QGCSwarmControl::QGCSwarmControl(QWidget *parent) :
 
     all_selected = false;
 
-	ui->disarmButton->setAutoFillBackground(true);
-	ui->disarmButton->setStyleSheet("background-color: rgb(255, 0, 0); color: rgb(0, 0, 0)");
+    ui->disarmButton->setAutoFillBackground(true);
+    ui->disarmButton->setStyleSheet("background-color: rgb(255, 0, 0); color: rgb(0, 0, 0)");
 
-	wptReachedCnt = 0;
+    wptReachedCnt = 0;
 }
 
 QGCSwarmControl::~QGCSwarmControl()
@@ -92,144 +123,198 @@ QGCSwarmControl::~QGCSwarmControl()
 
 void QGCSwarmControl::continueAllButton_clicked()
 {
-	qDebug() << "continueAllButton clicked";
+    qDebug() << "continueAllButton clicked";
 
-	wptReachedCnt = 0;
-	ui->wptReachedValue->setText(QString::number(wptReachedCnt));
-	
-	mavlink_message_t msg;
-	mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, MAV_COMP_ID_MISSIONPLANNER, MAV_CMD_MISSION_START, 1, 1, 1, 0, 0, 0, 0, 0);
-	mavlink->sendMessage(msg);
+    wptReachedCnt = 0;
+    ui->wptReachedValue->setText(QString::number(wptReachedCnt));
+    
+    mavlink_message_t msg;
+    mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, MAV_COMP_ID_MISSIONPLANNER, MAV_CMD_MISSION_START, 1, 1, 1, 0, 0, 0, 0, 0);
+    mavlink->sendMessage(msg);
 }
 
 void QGCSwarmControl::Return2startButton_clicked()
 {
-	qDebug() << "Return2startButton clicked";
+    qDebug() << "Return2startButton clicked";
 
-	mavlink_message_t msg;
-	mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, MAV_COMP_ID_MISSIONPLANNER, MAV_CMD_NAV_RETURN_TO_LAUNCH, 1, 0, 0, 0, 0, 0, 0, 0);
+    mavlink_message_t msg;
+    mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, MAV_COMP_ID_MISSIONPLANNER, MAV_CMD_NAV_RETURN_TO_LAUNCH, 1, 0, 0, 0, 0, 0, 0, 0);
     mavlink->sendMessage(msg);
 }
 
 void QGCSwarmControl::launchScenario_clicked()
 {
-	qDebug() << "launchScenario clicked";
+    qDebug() << "launchScenario clicked";
 
-	int scenarioNum;
+    int scenarioNum;
 
-	scenarioNum = ui->comboBoxScenario->currentIndex() + 1;
+    scenarioNum = ui->comboBoxScenario->currentIndex() + 1;
 
-	qDebug() << "scenarioNum:" + QString::number(scenarioNum);
+    qDebug() << "scenarioNum:" + QString::number(scenarioNum);
 
-	int autoContinue = 0;
-	if(ui->autoContinueCheckBox->checkState() == Qt::Checked)
-	{
-		autoContinue = 1;
-	}
+    int autoContinue = 0;
+    if(ui->autoContinueCheckBox->checkState() == Qt::Checked)
+    {
+        autoContinue = 1;
+    }
 
-	mavlink_message_t msg;
-	mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, MAV_COMP_ID_MISSIONPLANNER, MAV_CMD_CONDITION_LAST, 1, scenarioNum, ui->radiusSpinBox->value(), ui->numVhcSpinBox->value(),  ui->altitudeSpinBox->value(), autoContinue, 0, 0);
+    mavlink_message_t msg;
+    mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, MAV_COMP_ID_MISSIONPLANNER, MAV_CMD_CONDITION_LAST, 1, scenarioNum, ui->radiusSpinBox->value(), ui->numVhcSpinBox->value(),  ui->altitudeSpinBox->value(), autoContinue, 0, 0);
     mavlink->sendMessage(msg);
 }
 
 void QGCSwarmControl::autoLanding_clicked()
 {
-	qDebug() << "autoLanding clicked";
+    qDebug() << "autoLanding clicked";
 
-	mavlink_message_t msg;
-	mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_NAV_LAND, 1, 0, 0, 0, 0, 0, 0, 0);
-	mavlink->sendMessage(msg);
+    mavlink_message_t msg;
+    mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_NAV_LAND, 1, 0, 0, 0, 0, 0, 0, 0);
+    mavlink->sendMessage(msg);
 }
 
 void QGCSwarmControl::autoTakeoff_clicked()
 {
-	qDebug() << "autoTakeoff clicked";
+    qDebug() << "autoTakeoff clicked";
 
-	mavlink_message_t msg;
-	mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_NAV_TAKEOFF, 1, 0, 0, 0, 0, 0, 0, 0);
-	mavlink->sendMessage(msg);
+    mavlink_message_t msg;
+    mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_NAV_TAKEOFF, 1, 0, 0, 0, 0, 0, 0, 0);
+    mavlink->sendMessage(msg);
 }
 
 void QGCSwarmControl::startLogging_clicked()
 {
-	qDebug() << "startLogging clicked";
+    qDebug() << "startLogging clicked";
 
-	mavlink_message_t msg;
-	mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_DO_SET_PARAMETER, 1, 1, 0, 0, 0, 0, 0, 0);
-	mavlink->sendMessage(msg);
+    mavlink_message_t msg;
+    mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_DO_SET_PARAMETER, 1, 1, 0, 0, 0, 0, 0, 0);
+    mavlink->sendMessage(msg);
 }
 
 void QGCSwarmControl::stopLogging_clicked()
 {
-	qDebug() << "stopLogging clicked";
+    qDebug() << "stopLogging clicked";
 
-	mavlink_message_t msg;
-	mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_DO_SET_PARAMETER, 1, 0, 0, 0, 0, 0, 0, 0);
-	mavlink->sendMessage(msg);
+    mavlink_message_t msg;
+    mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_DO_SET_PARAMETER, 1, 0, 0, 0, 0, 0, 0, 0);
+    mavlink->sendMessage(msg);
 }
 
 void QGCSwarmControl::UASCreated(UASInterface* uas)
 {
-	Q_ASSERT(uas);
+    Q_ASSERT(uas);
 
-	if (uas)
-	{
-		QString idstring;
-		QStringList idstringList;
-		if (uas->getUASName() == "")
-	    {
-	        idstring = tr("UAS ") + QString::number(uas->getUASID());
-	        idstringList << tr("UAS ") + QString::number(uas->getUASID());
-	    }
-	    else
-	    {
-	        idstring = uas->getUASName();
-	        idstringList << uas->getUASName();
-	    }
+    if (uas)
+    {
+        QString idstring;
+        QStringList idstringList;
+        if (uas->getUASName() == "")
+        {
+            idstring = tr("UAS ") + QString::number(uas->getUASID());
+            idstringList << tr("UAS ") + QString::number(uas->getUASID());
+        }
+        else
+        {
+            idstring = uas->getUASName();
+            idstringList << uas->getUASName();
+        }
 
-		QListWidgetItem* item = new QListWidgetItem(idstring);
+        QListWidgetItem* item = new QListWidgetItem(idstring);
 
-		item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
-		item->setCheckState(Qt::Unchecked);
+        item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
+        item->setCheckState(Qt::Unchecked);
 
-		item->setForeground(uas->getColor());
+        item->setForeground(uas->getColor());
 
-		ui->listWidget->addItem(item);
-		ui->listWidget->sortItems();
+        int id = ((uas->getUASID()-1)%10)+1;
+        itemToID[item] = id;
 
-		uasToItemMapping[uas] = item;
-		itemToUasMapping[item] = uas;
+        int i = 0;
+        bool inserted = false;
+        if (ui->listWidget->count() == 0)
+        {
+            ui->listWidget->addItem(item);
+        }
+        else
+        {
+            QListWidgetItem* itemSwap;
+            while (i < ui->listWidget->count() && !inserted)
+            {
+                itemSwap = ui->listWidget->item(i);
+                if (itemToID[itemSwap] > itemToID[item])
+                {
+                    ui->listWidget->insertItem(i,item);
+                    inserted = true;
+                }
+                else
+                {
+                    i++;
+                }
+            }
+            if (!inserted)
+            {
+                ui->listWidget->addItem(item);
+            }
+        }
 
-		connect(uas,SIGNAL(textMessageReceived(int,int,int,QString)),this,SLOT(textEmit(int,int,int,QString)));
+        uasToItemMapping[uas] = item;
+        itemToUasMapping[item] = uas;
 
-		QListWidgetItem* itemRemote = new QListWidgetItem(idstring);
-		itemRemote->setFlags(itemRemote->flags() | Qt::ItemIsUserCheckable);
-		itemRemote->setCheckState(Qt::Checked);
+        connect(uas,SIGNAL(textMessageReceived(int,int,int,QString)),this,SLOT(textEmit(int,int,int,QString)));
 
-		itemRemote->setForeground(uas->getColor());
+        QListWidgetItem* itemRemote = new QListWidgetItem(idstring);
+        itemRemote->setFlags(itemRemote->flags() | Qt::ItemIsUserCheckable);
+        itemRemote->setCheckState(Qt::Checked);
 
-		uasToItemRemote[uas] = itemRemote;
-		itemToUasRemote[itemRemote] = uas;
+        itemRemote->setForeground(uas->getColor());
 
-		ui->remoteList->addItem(itemRemote);
-		ui->remoteList->sortItems();
+        uasToItemRemote[uas] = itemRemote;
+        itemToUasRemote[itemRemote] = uas;
 
-		UASlist = UASManager::instance()->getUASList();
+        itemToIDRemote[itemRemote] = id;
 
-		if(!mode_init)
-		{
-			updateModesList(uas);
-			mode_init = true;
-		}
-		
-	}
+        
+        if (ui->remoteList->count() == 0)
+        {
+            ui->remoteList->addItem(itemRemote);
+        }
+        else
+        {
+            i = 0;
+            inserted = false;
+            QListWidgetItem* itemSwapRemote;
+            while (i < ui->remoteList->count() && !inserted)
+            {
+                itemSwapRemote = ui->remoteList->item(i);
+                if (itemToIDRemote[itemSwapRemote] > itemToIDRemote[itemRemote])
+                {
+                    ui->remoteList->insertItem(i,itemRemote);
+                    inserted = true;
+                }
+                else
+                {
+                    i++;
+                }
+            }
+            if (!inserted)
+            {
+                ui->remoteList->addItem(itemRemote);
+            }
+        }
+
+        if(!mode_init)
+        {
+            updateModesList(uas);
+            mode_init = true;
+        }
+        
+    }
 }
 
 void QGCSwarmControl::updateModesList(UASInterface* uas)
 {
     if (!uas)
     {
-    	return;
+        return;
     }
     
     _modeList = AutoPilotPluginManager::instance()->getModes(uas->getAutopilotType());
@@ -249,67 +334,69 @@ void QGCSwarmControl::updateModesList(UASInterface* uas)
 
 void QGCSwarmControl::RemoveUAS(UASInterface* uas)
 {
-	QListWidgetItem* item = uasToItemMapping[uas];
-	uasToItemMapping.remove(uas);
+    qDebug() << "Removing UAS from SwarmControl";
 
-	itemToUasMapping.remove(item);
+    QListWidgetItem* item = uasToItemMapping[uas];
+    uasToItemMapping.remove(uas);
 
-	//ui->listWidget->removeItemWidget(item);
-	ui->listWidget->takeItem(ui->listWidget->row(item));
-	delete item;
+    itemToUasMapping.remove(item);
 
-	item = uasToItemRemote[uas];
-	uasToItemRemote.remove(uas);
+    //ui->listWidget->removeItemWidget(item);
+    ui->listWidget->takeItem(ui->listWidget->row(item));
+    delete item;
 
-	itemToUasRemote.remove(item);
+    item = uasToItemRemote[uas];
+    uasToItemRemote.remove(uas);
 
-	ui->remoteList->takeItem(ui->remoteList->row(item));
-	delete item;
+    itemToUasRemote.remove(item);
 
-	UASlist = UASManager::instance()->getUASList();
+    ui->remoteList->takeItem(ui->remoteList->row(item));
+    delete item;
+
+    UASlist = UASManager::instance()->getUASList();
 }
 
 void QGCSwarmControl::ListWidgetClicked(QListWidgetItem* item)
 {
 
-	QMap<QListWidgetItem*,UASInterface*>::const_iterator it = itemToUasMapping.constFind(item);
+    QMap<QListWidgetItem*,UASInterface*>::const_iterator it = itemToUasMapping.constFind(item);
 
-	UASInterface* uas = it.value();
+    UASInterface* uas = it.value();
 
-	if (uas != UASManager::instance()->getActiveUAS())
-	{
-		UASManager::instance()->setActiveUAS(uas);
-	}
+    if (uas != UASManager::instance()->getActiveUAS())
+    {
+        UASManager::instance()->setActiveUAS(uas);
+    }
 }
 
 void QGCSwarmControl::newActiveUAS(UASInterface* uas)
 {
-	QListWidgetItem* item;
+    QListWidgetItem* item;
 
-	if (uas_previous)
-	{
-		item = uasToItemMapping[uas_previous];
-		item->setCheckState(Qt::Unchecked);
-	}
-	uas_previous = uas;
+    if (uas_previous)
+    {
+        item = uasToItemMapping[uas_previous];
+        item->setCheckState(Qt::Unchecked);
+    }
+    uas_previous = uas;
 
 
-	item = uasToItemMapping[uas];
-	ui->listWidget->setItemSelected(item,true);
+    item = uasToItemMapping[uas];
+    ui->listWidget->setItemSelected(item,true);
 
-	item->setCheckState(Qt::Checked);
+    item->setCheckState(Qt::Checked);
 
 }
 
 void QGCSwarmControl::textEmit(int uasid, int component, int severity, QString message)
 {
-	Q_UNUSED(uasid);
-	Q_UNUSED(component);
+    Q_UNUSED(uasid);
+    Q_UNUSED(component);
     Q_UNUSED(severity);
 
-	UASInterface* uas = (UASInterface*)sender();
+    UASInterface* uas = (UASInterface*)sender();
 
-	emit uasTextReceived(uas,message);
+    emit uasTextReceived(uas,message);
 }
 
 void QGCSwarmControl::textMessageReceived(UASInterface* uas, QString message)
@@ -318,70 +405,70 @@ void QGCSwarmControl::textMessageReceived(UASInterface* uas, QString message)
 
     if (uas)
     {
-    	qDebug() << "UAS id:" << QString::number(uas->getUASID());
-    	item = uasToItemMapping[uas];
+        qDebug() << "UAS id:" << QString::number(uas->getUASID());
+        item = uasToItemMapping[uas];
 
-    	qDebug() << message;
+        qDebug() << message;
 
-    	if (message.contains("reached waypoint"))
-    	{
-    		wptReachedCnt++;
-    		qDebug() << QString::number(wptReachedCnt);
-    		ui->wptReachedValue->setText(QString::number(wptReachedCnt));
-    	} else if (message.contains("SUCCESS"))
-    	{
-    		item->setBackground(Qt::green);
-    	}
-    	else
-    	{
-    		item->setBackground(Qt::red);
-    	}
+        if (message.contains("reached waypoint"))
+        {
+            wptReachedCnt++;
+            qDebug() << QString::number(wptReachedCnt);
+            ui->wptReachedValue->setText(QString::number(wptReachedCnt));
+        } else if (message.contains("SUCCESS"))
+        {
+            item->setBackground(Qt::green);
+        }
+        else
+        {
+            item->setBackground(Qt::red);
+        }
     }
 }
 
 void QGCSwarmControl::refreshView()
 {
-	QListWidgetItem* item;
+    QListWidgetItem* item;
 
-	foreach(UASInterface* uas, UASManager::instance()->getUASList())
-	{
-		item = uasToItemMapping[uas];
-		item->setBackground(Qt::transparent);
-	}
+    foreach(UASInterface* uas, UASManager::instance()->getUASList())
+    {
+        item = uasToItemMapping[uas];
+        item->setBackground(Qt::transparent);
+    }
 }
 void QGCSwarmControl::setParameters_clicked()
 {
-	float param1 = ui->spinBoxParam1->value();
-	float param2 = ui->spinBoxParam2->value();
-	float param3 = ui->spinBoxParam3->value();
-	float param4 = ui->spinBoxParam4->value();
-	float param5 = ui->spinBoxParam5->value();
-	float param6 = ui->spinBoxParam6->value();
-	float param7 = ui->spinBoxParam7->value();
+    float param1 = ui->spinBoxParam1->value();
+    float param2 = ui->spinBoxParam2->value();
+    float param3 = ui->spinBoxParam3->value();
+    float param4 = ui->spinBoxParam4->value();
+    float param5 = ui->spinBoxParam5->value();
+    float param6 = ui->spinBoxParam6->value();
+    float param7 = ui->spinBoxParam7->value();
 
-	mavlink_message_t msg;
-	mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_NAV_PATHPLANNING, 1, param1, param2, param3, param4, param5, param6, param7);
-	mavlink->sendMessage(msg);
+    mavlink_message_t msg;
+    mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_NAV_PATHPLANNING, 1, param1, param2, param3, param4, param5, param6, param7);
+    mavlink->sendMessage(msg);
 }
 
 void QGCSwarmControl::startButton_clicked()
 {
-	//MAV_CMD_OVERRIDE_GOTO=252, /* Hold / continue the current action |MAV_GOTO_DO_HOLD: hold MAV_GOTO_DO_CONTINUE: continue with next item in mission plan| MAV_GOTO_HOLD_AT_CURRENT_POSITION: Hold at current position MAV_GOTO_HOLD_AT_SPECIFIED_POSITION: hold at specified position| MAV_FRAME coordinate frame of hold point| Desired yaw angle in degrees| Latitude / X position| Longitude / Y position| Altitude / Z position|  */
-	mavlink_message_t msg;
-	mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_OVERRIDE_GOTO, 1, MAV_GOTO_DO_CONTINUE, 0, 0, 0, 0, 0, 0);
-	mavlink->sendMessage(msg);
+    //MAV_CMD_OVERRIDE_GOTO=252, /* Hold / continue the current action |MAV_GOTO_DO_HOLD: hold MAV_GOTO_DO_CONTINUE: continue with next item in mission plan| MAV_GOTO_HOLD_AT_CURRENT_POSITION: Hold at current position MAV_GOTO_HOLD_AT_SPECIFIED_POSITION: hold at specified position| MAV_FRAME coordinate frame of hold point| Desired yaw angle in degrees| Latitude / X position| Longitude / Y position| Altitude / Z position|  */
+    mavlink_message_t msg;
+    mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_OVERRIDE_GOTO, 1, MAV_GOTO_DO_CONTINUE, 0, 0, 0, 0, 0, 0);
+    mavlink->sendMessage(msg);
 }
 
 void QGCSwarmControl::stopButton_clicked()
 {
-	mavlink_message_t msg;
-	mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_OVERRIDE_GOTO, 1, MAV_GOTO_DO_HOLD, MAV_GOTO_HOLD_AT_CURRENT_POSITION, 0, 0, 0, 0, 0);
-	mavlink->sendMessage(msg);
+    mavlink_message_t msg;
+    mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_OVERRIDE_GOTO, 1, MAV_GOTO_DO_HOLD, MAV_GOTO_HOLD_AT_CURRENT_POSITION, 0, 0, 0, 0, 0);
+    mavlink->sendMessage(msg);
 }
 
 void QGCSwarmControl::armButton_clicked()
 {
-	if (modeIdx >= 0 && modeIdx < _modeList.count())
+    if (modeIdx >= 0 && modeIdx < _modeList.count())
     {
         AutoPilotPluginManager::FullMode_t fullMode = _modeList[modeIdx];
 
@@ -389,24 +476,24 @@ void QGCSwarmControl::armButton_clicked()
 
         if (ui->avoidanceBox->checkState() == Qt::Checked)
         {
-        	fullMode.baseMode |= MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
+            fullMode.baseMode |= MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
         }
         else
         {
-        	fullMode.baseMode &= ~MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
+            fullMode.baseMode &= ~MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
         }
 
         fullMode.customMode = 0;
 
-		mavlink_message_t msg;
-		mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_DO_SET_MODE, 1, fullMode.baseMode, fullMode.customMode, 0, 0, 0, 0, 0);
-		mavlink->sendMessage(msg);
-	}
+        mavlink_message_t msg;
+        mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_DO_SET_MODE, 1, fullMode.baseMode, fullMode.customMode, 0, 0, 0, 0, 0);
+        mavlink->sendMessage(msg);
+    }
 }
 
 void QGCSwarmControl::disarmButton_clicked()
 {
-	if (modeIdx >= 0 && modeIdx < _modeList.count())
+    if (modeIdx >= 0 && modeIdx < _modeList.count())
     {
         AutoPilotPluginManager::FullMode_t fullMode = _modeList[modeIdx];
 
@@ -414,80 +501,80 @@ void QGCSwarmControl::disarmButton_clicked()
 
         if (ui->avoidanceBox->checkState() == Qt::Checked)
         {
-        	fullMode.baseMode |= MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
+            fullMode.baseMode |= MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
         }
         else
         {
-        	fullMode.baseMode &= ~MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
+            fullMode.baseMode &= ~MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
         }
         fullMode.customMode = 0;
 
-		mavlink_message_t msg;
-		mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_DO_SET_MODE, 1, fullMode.baseMode, fullMode.customMode, 0, 0, 0, 0, 0);
-		mavlink->sendMessage(msg);
-	}
+        mavlink_message_t msg;
+        mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_DO_SET_MODE, 1, fullMode.baseMode, fullMode.customMode, 0, 0, 0, 0, 0);
+        mavlink->sendMessage(msg);
+    }
 }
 
 void QGCSwarmControl::selectButton_clicked()
 {
-	if (all_selected)
-	{
-		all_selected = false;
-		ui->selectButton->setText(tr("Unselect all"));
+    if (all_selected)
+    {
+        all_selected = false;
+        ui->selectButton->setText(tr("Unselect all"));
 
-		QMap<UASInterface*,QListWidgetItem*>::iterator it;
-		for(it=uasToItemRemote.begin();it!=uasToItemRemote.end();++it)
-		{
-			it.value()->setCheckState(Qt::Checked);
-		}
-	}
-	else
-	{
-		all_selected = true;
-		ui->selectButton->setText(tr("Select all"));
+        QMap<UASInterface*,QListWidgetItem*>::iterator it;
+        for(it=uasToItemRemote.begin();it!=uasToItemRemote.end();++it)
+        {
+            it.value()->setCheckState(Qt::Checked);
+        }
+    }
+    else
+    {
+        all_selected = true;
+        ui->selectButton->setText(tr("Select all"));
 
-		QMap<UASInterface*,QListWidgetItem*>::iterator it;
-		for(it=uasToItemRemote.begin();it!=uasToItemRemote.end();++it)
-		{
-			it.value()->setCheckState(Qt::Unchecked);
-		}
-	}
+        QMap<UASInterface*,QListWidgetItem*>::iterator it;
+        for(it=uasToItemRemote.begin();it!=uasToItemRemote.end();++it)
+        {
+            it.value()->setCheckState(Qt::Unchecked);
+        }
+    }
 }
 
 void QGCSwarmControl::remoteItem_clicked(QListWidgetItem* item)
 {
-	if (item->checkState() == Qt::Checked)
-	{
-		item->setCheckState(Qt::Unchecked);
-	}
-	else
-	{
-		item->setCheckState(Qt::Checked);
-	}
-	
+    if (item->checkState() == Qt::Checked)
+    {
+        item->setCheckState(Qt::Unchecked);
+    }
+    else
+    {
+        item->setCheckState(Qt::Checked);
+    }
+    
 }
 
 void QGCSwarmControl::remoteButton_clicked()
 {
-	mavlink_message_t msg;
-	UASInterface* uas;
-	int remoteVal;
-	
-	QMap<UASInterface*,QListWidgetItem*>::iterator it;
-	for(it=uasToItemRemote.begin();it!=uasToItemRemote.end();++it)
-	{
-		uas = it.key();
-		if(it.value()->checkState() == Qt::Checked)
-		{
-			remoteVal = 1;
-		}
-		else
-		{
-			remoteVal = 0;
-		}
-		mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, uas->getUASID(), MAV_COMP_ID_SYSTEM_CONTROL, MAV_CMD_DO_PARACHUTE, 1, remoteVal, 0, 0, 0, 0, 0, 0);
-		mavlink->sendMessage(msg);
-	}
+    mavlink_message_t msg;
+    UASInterface* uas;
+    int remoteVal;
+    
+    QMap<UASInterface*,QListWidgetItem*>::iterator it;
+    for(it=uasToItemRemote.begin();it!=uasToItemRemote.end();++it)
+    {
+        uas = it.key();
+        if(it.value()->checkState() == Qt::Checked)
+        {
+            remoteVal = 1;
+        }
+        else
+        {
+            remoteVal = 0;
+        }
+        mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, uas->getUASID(), MAV_COMP_ID_SYSTEM_CONTROL, MAV_CMD_DO_PARACHUTE, 1, remoteVal, 0, 0, 0, 0, 0, 0);
+        mavlink->sendMessage(msg);
+    }
 }
 
 void QGCSwarmControl::setMode(int mode)
@@ -514,10 +601,10 @@ void QGCSwarmControl::sendNewHomePosition()
 
 void QGCSwarmControl::strategyLaunchClicked()
 {
-	int strategy = ui->comboBoxStrategy->currentIndex()+1;
+    int strategy = ui->comboBoxStrategy->currentIndex()+1;
 
 
-	mavlink_message_t msg;
-	mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_NAV_ROI, 1, strategy, 0, 0, 0, 0, 0, 0);
-	mavlink->sendMessage(msg);
+    mavlink_message_t msg;
+    mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_NAV_ROI, 1, strategy, 0, 0, 0, 0, 0, 0);
+    mavlink->sendMessage(msg);
 }
