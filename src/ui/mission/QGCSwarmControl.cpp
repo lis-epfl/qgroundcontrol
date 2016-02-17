@@ -594,8 +594,39 @@ void QGCSwarmControl::sendNewHomePosition()
     double lon = UASManager::instance()->getHomeLongitude();
     double alt = UASManager::instance()->getHomeAltitude();
 
-    mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_DO_SET_HOME, 1, 0, 0, 0, 0, lat, lon, alt);
+    //mavlink_msg_command_long_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0, 0, MAV_CMD_DO_SET_HOME, 1, 0, 0, 0, 0, lat, lon, alt);
     
+    mavlink_set_home_position_t home_msg;
+
+    home_msg.latitude = lat * 10000000;
+    home_msg.longitude = lon * 10000000;
+    home_msg.altitude = alt * 1000;
+
+    home_msg.x = 0.0f;
+    home_msg.y = 0.0f;
+    home_msg.z = 0.0f;
+
+    home_msg.q[0] = 0.0f;
+    home_msg.q[1] = 0.0f;
+    home_msg.q[2] = 0.0f;
+    home_msg.q[3] = 0.0f;
+
+    home_msg.approach_x = 0.0f;
+    home_msg.approach_y = 0.0f;
+    home_msg.approach_z = 0.0f;
+
+    mavlink_msg_set_home_position_pack(mavlink->getSystemId(), mavlink->getComponentId(), &msg, 0,
+                                        home_msg.latitude,
+                                        home_msg.longitude,
+                                        home_msg.altitude,
+                                        home_msg.x,
+                                        home_msg.y,
+                                        home_msg.z,
+                                        home_msg.q,
+                                        home_msg.approach_x,
+                                        home_msg.approach_y,
+                                        home_msg.approach_z );
+
     mavlink->sendMessage(msg);
 }
 
